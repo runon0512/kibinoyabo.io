@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>平均点計算ツール</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <aside class="sidebar">
+        <h2>スクール一覧</h2>
+        <div id="schoolList">
+        </div>
+        <button id="newSchoolButton">＋ 新しいスクールを作成</button>
+    </aside>
+
+    <main class="main-content">
+        <div class="container">
+            <h1 id="currentSchoolTitle">平均点計算ツール</h1>
+
+            <section class="group-management-section">
+                <h3>グループ一覧</h3>
+                <div id="groupList">
+                    </div>
+                <button id="newGroupButton">＋ 新しいグループを作成</button>
+            </section>
+
+            <form id="scoreForm">
+                <section class="input-section">
+                    <p>点数を一つずつ入力してください:</p>
+                    <div id="scoreInputsContainer">
+                        </div>
+                    <div class="buttons-group">
+                        <button type="submit" id="calculateButton">平均を計算</button>
+                    </div>
+                </section>
+            </form>
+            <section class="result-section" aria-live="polite">
+                <p>入力された点数: <span id="scoresDisplay"></span></p>
+                <p>平均点: <span id="averageResult"></span></p>
+                <div id="groupAverageResults">
+                    </div>
+            </section>
+        </div>
+    </main>
+    <script src="script.js"></script>
+</body>
+</html>
