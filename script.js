@@ -73,9 +73,9 @@ const MENTALITY_CHANGE_BY_POS = {
     16: -7, 17: -10, 18: -15, 19: -20, 20: -30
 };
 
-const DNF_MENTALITY_PENALTY = -50;
-const TEAMMATE_WIN_MENTALITY = 10;
-const TEAMMATE_LOSE_MENTALITY = -10;
+const DNF_MENTALITY_PENALTY = -10;
+const TEAMMATE_WIN_MENTALITY = 5;
+const TEAMMATE_LOSE_MENTALITY = -5;
 
 // ******************************************************
 // 24戦のサーキットカレンダー (0: 低速, 100: 高速)
