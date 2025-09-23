@@ -12,7 +12,7 @@ window.allRaceResults = []; // 詳細表示用
 const TEAM_RATES = {
     // team: { attack_rate: 予選, pace_rate: 決勝, compatibility: コース相性 (0: 低速, 100: 高速) }
     "Red Bull": { attack_rate: 87, pace_rate: 89, compatibility: 65 },
-    "Ferrari": { attack_rate: 92, pace_rate: 88, compatibility: 30 },
+    "Ferrari": { attack_rate: 92, pace: 88, compatibility: 30 },
     "McLaren": { attack_rate: 94, pace_rate: 96, compatibility: 85 },
     "Mercedes": { attack_rate: 89, pace_rate: 89, compatibility: 50 },
     "Williams": { attack_rate: 82, pace_rate: 84, compatibility: 75 },
@@ -164,12 +164,14 @@ function simulateRace(drivers, race) {
     const MACHINE_WEIGHT = 0.7; 
     const DRIVER_WEIGHT = 0.3;  
     
-    // メンタリティの変動率を計算する関数
+    // メンタリティの変動率を計算する関数 (補正を2倍に)
     function getMentalityChangeRate(mentality) {
         // -100から100の範囲で、変動率を調整
         // 低いメンタリティでは変動率が高く、高いメンタリティでは低い
-        // 例: -100 -> 2.0, 0 -> 1.0, 100 -> 0.1
-        return Math.pow(0.5, (mentality + 100) / 100);
+        const normalizedMentality = (mentality + 100) / 200; // 0-1の範囲に正規化
+        const inverseNormalized = 1 - normalizedMentality;
+        // 補正を2倍にする
+        return 1 + (inverseNormalized - 0.5) * 2;
     }
     
     // メンタリティがパフォーマンスに与える影響度
@@ -272,19 +274,19 @@ function simulateRace(drivers, race) {
         const position = index + 1;
         
         // メンタリティ増減を計算
-        let mentalityChange = MENTALITY_CHANGE_BY_POS[position] || 0;
+        let mentalityChange = (MENTALITY_CHANGE_BY_POS[position] || 0) / 4;
         
         if (driverScore.dnfOccurred) {
-            mentalityChange += DNF_MENTALITY_PENALTY;
+            mentalityChange = DNF_MENTALITY_PENALTY / 4;
         }
         
         // チームメイトと比較
         const teammate = finalRaceOrder.find(d => d.team === driverScore.team && d.name !== driverScore.name);
         if (teammate) {
             if (position < finalRaceOrder.indexOf(teammate) + 1) {
-                mentalityChange += TEAMMATE_WIN_MENTALITY;
+                mentalityChange += TEAMMATE_WIN_MENTALITY / 4;
             } else {
-                mentalityChange += TEAMMATE_LOSE_MENTALITY;
+                mentalityChange += TEAMMATE_LOSE_MENTALITY / 4;
             }
         }
         
