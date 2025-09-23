@@ -1,15 +1,23 @@
 // ******************************************************
+// シミュレーション状態管理
+// ******************************************************
+let currentRound = 0;
+let currentDrivers = [];
+let raceWinners = [];
+window.allRaceResults = []; // 詳細表示用
+
+// ******************************************************
 // マシンパフォーマンスレート (Attack/Pace/Compatibilityに分割)
 // ******************************************************
 const TEAM_RATES = {
     // team: { attack_rate: 予選, pace_rate: 決勝, compatibility: コース相性 (0: 低速, 100: 高速) }
     "Red Bull": { attack_rate: 87, pace_rate: 89, compatibility: 65 },
     "Ferrari": { attack_rate: 92, pace_rate: 88, compatibility: 30 },
-    "McLaren": { attack_rate: 94, pace_rate: 98, compatibility: 85 },
+    "McLaren": { attack_rate: 94, pace_rate: 96, compatibility: 85 },
     "Mercedes": { attack_rate: 89, pace_rate: 89, compatibility: 50 },
     "Williams": { attack_rate: 82, pace_rate: 84, compatibility: 75 },
     "Aston Martin": { attack_rate: 83, pace_rate: 81, compatibility: 40 },
-    "Alpine": { attack_rate: 76, pace: 78, compatibility: 55 },
+    "Alpine": { attack_rate: 76, pace_rate: 78, compatibility: 55 },
     "Racing Bulls": { attack_rate: 81, pace_rate: 83, compatibility: 60 },
     "Kick Sauber": { attack_rate: 80, pace_rate: 78, compatibility: 20 },
     "Haas": { attack_rate: 81, pace_rate: 81, compatibility: 45 },
@@ -31,31 +39,43 @@ const TEAM_COLORS = {
 
 // ドライバープール (Attack, Pace, Stability)
 const DRIVER_POOL = {
-    // 選手名: { attack(予選), pace(決勝), stability(安定性), age, team }
-    "Max Verstappen": { attack: 96, pace: 95, stability: 97, age: 28, team: "Red Bull" }, 
-    "Liam Lawson": { attack: 80, pace: 80, stability: 85, age: 24, team: "Red Bull" },
-    "Charles Leclerc": { attack: 94, pace: 90, stability: 89, age: 28, team: "Ferrari" },
-    "Lewis Hamilton": { attack: 90, pace: 92, stability: 95, age: 41, team: "Ferrari" },
-    "Lando Norris": { attack: 91, pace: 93, stability: 90, age: 26, team: "McLaren" },
-    "Oscar Piastri": { attack: 88, pace: 89, stability: 86, age: 25, team: "McLaren" },
-    "George Russell": { attack: 93, pace: 91, stability: 88, age: 27, team: "Mercedes" },
-    "A. Kimi Antonelli": { attack: 82, pace: 78, stability: 75, age: 19, team: "Mercedes" },
-    "Fernando Alonso": { attack: 85, pace: 89, stability: 93, age: 44, team: "Aston Martin" },
-    "Lance Stroll": { attack: 76, pace: 74, stability: 70, age: 27, team: "Aston Martin" },
-    "Pierre Gasly": { attack: 83, pace: 81, stability: 82, age: 30, team: "Alpine" },
-    "Jack Doohan": { attack: 73, pace: 75, stability: 76, age: 23, team: "Alpine" },
-    "Alex Albon": { attack: 85, pace: 83, stability: 84, age: 30, team: "Williams" },
-    "Carlos Sainz": { attack: 87, pace: 88, stability: 91, age: 31, team: "Williams" },
-    "Yuki Tsunoda": { attack: 81, pace: 79, stability: 80, age: 25, team: "Racing Bulls" },
-    "Isack Hadjar": { attack: 79, pace: 80, stability: 75, age: 21, team: "Racing Bulls" },
-    "Nico Hulkenberg": { attack: 78, pace: 77, stability: 83, age: 38, team: "Kick Sauber" },
-    "Gabriel Bortoleto": { attack: 77, pace: 78, stability: 72, age: 22, team: "Kick Sauber" },
-    "Esteban Ocon": { attack: 79, pace: 77, stability: 81, age: 29, team: "Haas" },
-    "Oliver Bearman": { attack: 75, pace: 76, stability: 74, age: 20, team: "Haas" },
+    // 選手名: { attack(予選), pace(決勝), stability(安定性), team }
+    "Max Verstappen": { attack: 96, pace: 95, stability: 97, team: "Red Bull" }, 
+    "Yuki Tsunoda": { attack: 85, pace: 83, stability: 88, team: "Red Bull" },
+    "Charles Leclerc": { attack: 94, pace: 90, stability: 89, team: "Ferrari" },
+    "Lewis Hamilton": { attack: 90, pace: 92, stability: 95, team: "Ferrari" },
+    "Lando Norris": { attack: 91, pace: 93, stability: 90, team: "McLaren" },
+    "Oscar Piastri": { attack: 88, pace: 89, stability: 86, team: "McLaren" },
+    "George Russell": { attack: 93, pace: 91, stability: 88, team: "Mercedes" },
+    "A. Kimi Antonelli": { attack: 82, pace: 78, stability: 75, team: "Mercedes" },
+    "Fernando Alonso": { attack: 85, pace: 89, stability: 93, team: "Aston Martin" },
+    "Lance Stroll": { attack: 76, pace: 74, stability: 70, team: "Aston Martin" },
+    "Pierre Gasly": { attack: 83, pace: 81, stability: 82, team: "Alpine" },
+    "Jack Doohan": { attack: 73, pace: 75, stability: 76, team: "Alpine" },
+    "Alex Albon": { attack: 85, pace: 83, stability: 84, team: "Williams" },
+    "Carlos Sainz": { attack: 87, pace: 88, stability: 91, team: "Williams" },
+    "Liam Lawson": { attack: 80, pace: 80, stability: 85, team: "Racing Bulls" },
+    "Isack Hadjar": { attack: 79, pace: 80, stability: 75, team: "Racing Bulls" },
+    "Nico Hulkenberg": { attack: 78, pace: 77, stability: 83, team: "Kick Sauber" },
+    "Gabriel Bortoleto": { attack: 77, pace: 78, stability: 72, team: "Kick Sauber" },
+    "Esteban Ocon": { attack: 79, pace: 77, stability: 81, team: "Haas" },
+    "Oliver Bearman": { attack: 75, pace: 76, stability: 74, team: "Haas" },
 };
 
 // ポイントシステム (上位10名のみ)
 const POINTS_SYSTEM = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
+
+// メンタリティ変動テーブル
+const MENTALITY_CHANGE_BY_POS = {
+    1: 30, 2: 15, 3: 10, 4: 8, 5: 6,
+    6: 4, 7: 3, 8: 2, 9: 1, 10: 1,
+    11: 0, 12: -1, 13: -2, 14: -3, 15: -5,
+    16: -7, 17: -10, 18: -15, 19: -20, 20: -30
+};
+
+const DNF_MENTALITY_PENALTY = -50;
+const TEAMMATE_WIN_MENTALITY = 10;
+const TEAMMATE_LOSE_MENTALITY = -10;
 
 // ******************************************************
 // 24戦のサーキットカレンダー (0: 低速, 100: 高速)
@@ -77,8 +97,6 @@ const RACE_CALENDAR = [
 
 /**
  * コース相性値 (0-100) をカテゴリ名に変換する
- * @param {number} value - コース相性値
- * @returns {string} カテゴリ名
  */
 function getTrackCategory(value) {
     if (value <= 10) return "超低速";
@@ -90,8 +108,6 @@ function getTrackCategory(value) {
 
 /**
  * マシンのCompatibility値に基づき、得意分野のテキストを返す
- * @param {number} value - Compatibility値 (0-100)
- * @returns {string} 得意分野のテキスト
  */
 function getCompatibilityText(value) {
     if (value <= 20) return "超低速特化 (0-20)";
@@ -103,66 +119,69 @@ function getCompatibilityText(value) {
 
 /**
  * マシンとコースの相性を計算し、パフォーマンス補正値を返す
- * @param {string} team - チーム名
- * @param {number} trackValue - コース相性値 (0-100)
- * @returns {number} 補正係数 (例: 1.2, 0.8)
  */
 function calculatePerformanceBoost(team, trackValue) {
     const teamCompatibility = TEAM_RATES[team].compatibility;
     const difference = Math.abs(teamCompatibility - trackValue);
-    
-    // 差が0のとき +0.2、差が100のとき -0.2
     const normalizedDiff = (difference - 50) / 50; 
     const boost = -normalizedDiff * 0.2; 
-
     return 1 + boost; 
 }
 
 /**
  * 予選順位に基づき、決勝パフォーマンススコアに加算するボーナス/ペナルティを計算する
- * 1位: +5.0, 20位: -5.0 (約±5%の性能差)
- * @param {number} qualPosition - 予選順位 (1-20)
- * @returns {number} グリッドボーナス/ペナルティ
  */
 function calculateGridAdvantage(qualPosition) {
-    // 1位: 1, 20位: 20。中央(10.5位)を0にする
     const normalizedPosition = qualPosition - 10.5;
-    // -9.5 (1位) から +9.5 (20位) の範囲
-    
-    // 最大±5.0の変動を与える
     const gridAdvantage = -normalizedPosition * (5.0 / 9.5); 
     return gridAdvantage;
 }
 
-
+/**
+ * 新しいドライバー配列を作成（メンタリティと入賞数を初期化）
+ */
 function createInitialDriversArray() {
     return Object.entries(DRIVER_POOL).map(([name, data]) => ({
         name: name,
         team: data.team,
         attackRate: data.attack, 
         paceRate: data.pace, 
-        stabilityRate: data.stability, 
+        stabilityRate: data.stability,
+        mentality: 0, // 新パラメータ：メンタリティ
         points: 0, 
         wins: 0, 
         pp: 0, 
         podiums: 0, 
-        pointsFinishes: 0, 
+        pointsFinishes: 0, // 累計入賞数
         dnf: 0 
     }));
 }
 
 /**
  * 1レースの結果をシミュレーションし、ポイントと統計を計算する
- * @param {Array<Object>} drivers - ドライバーリスト
- * @param {Object} race - レース情報 ({ name, track_value })
- * @returns {Object} レース結果と統計
  */
 function simulateRace(drivers, race) {
     const MACHINE_WEIGHT = 0.7; 
     const DRIVER_WEIGHT = 0.3;  
+    
+    // メンタリティの変動率を計算する関数
+    function getMentalityChangeRate(mentality) {
+        // -100から100の範囲で、変動率を調整
+        // 低いメンタリティでは変動率が高く、高いメンタリティでは低い
+        // 例: -100 -> 2.0, 0 -> 1.0, 100 -> 0.1
+        return Math.pow(0.5, (mentality + 100) / 100);
+    }
+    
+    // メンタリティがパフォーマンスに与える影響度
+    function getMentalityBoost(mentality) {
+        // メンタリティ-100で-25%、100で+25%の影響
+        const normalizedMentality = mentality / 100;
+        return normalizedMentality * 0.25;
+    }
 
     const trackValue = race.track_value;
     
+    // シミュレーション対象のドライバーのコピー
     const raceDrivers = drivers.map(d => ({
         ...d,
         wins: 0,
@@ -171,12 +190,12 @@ function simulateRace(drivers, race) {
         dnfOccurred: false,
         score: 0,
         racePoints: 0,
-        qualPosition: 0 // 予選順位を格納
+        qualPosition: 0, 
+        finalPosition: 0, // 決勝順位を一時的に保存
+        mentalityChange: 0
     }));
 
-    // ==========================================================
     // 1. 予選シミュレーション (PP決定 & 1-20位確定) 
-    // ==========================================================
     let qualificationScores = raceDrivers.map(driver => {
         const team = driver.team;
         const machineRate = TEAM_RATES[team].attack_rate;
@@ -186,22 +205,23 @@ function simulateRace(drivers, race) {
         const effectiveMachineRate = machineRate * boostFactor; 
         
         const basePerformance = (effectiveMachineRate * 0.7) + (driverSkill * 0.3);
-        const randomFactor = Math.random() * 30 - 15; // 運要素を強化
+        const randomFactor = Math.random() * 30 - 15;
+        
+        // メンタリティを予選パフォーマンスに反映
+        const mentalityEffect = getMentalityBoost(driver.mentality) * (basePerformance + randomFactor);
         
         return {
             ...driver,
-            score: basePerformance + randomFactor
+            score: basePerformance + randomFactor + mentalityEffect
         };
     }).sort((a, b) => b.score - a.score);
 
-    // 予選順位を確定し、一時オブジェクトに格納
     const qualificationResults = qualificationScores.map((d, index) => ({
         name: d.name,
         team: d.team,
-        qualPosition: index + 1 // 予選順位 1-20位
+        qualPosition: index + 1
     }));
     
-    // 予選順位を raceDrivers に反映
     qualificationResults.forEach(qResult => {
         const driver = raceDrivers.find(d => d.name === qResult.name);
         if (driver) {
@@ -210,33 +230,24 @@ function simulateRace(drivers, race) {
         }
     });
 
-    // ==========================================================
     // 2. 決勝パフォーマンススコア計算 (予選順位を考慮)
-    // ==========================================================
     raceDrivers.forEach(driver => {
         const team = driver.team;
         const machineRate = TEAM_RATES[team].pace_rate;
         const driverSkill = driver.paceRate; 
-
         const boostFactor = calculatePerformanceBoost(team, trackValue);
         const effectiveMachineRate = machineRate * boostFactor; 
-
-        // 予選順位によるグリッドアドバンテージを計算
         const gridAdvantage = calculateGridAdvantage(driver.qualPosition); 
-
-        const basePerformance = 
-            (effectiveMachineRate * MACHINE_WEIGHT) + 
-            (driverSkill * DRIVER_WEIGHT);
-            
+        const basePerformance = (effectiveMachineRate * MACHINE_WEIGHT) + (driverSkill * DRIVER_WEIGHT);
         const randomFactor = Math.random() * 20 - 10; 
         
-        // 予選順位ボーナスを加算して決勝スコアを決定
-        driver.score = basePerformance + randomFactor + gridAdvantage;
+        // メンタリティを決勝パフォーマンスに反映
+        const mentalityEffect = getMentalityBoost(driver.mentality) * (basePerformance + randomFactor);
+        
+        driver.score = basePerformance + randomFactor + gridAdvantage + mentalityEffect;
     });
 
-    // ==========================================================
     // 3. DNF/クラッシュのシミュレーション
-    // ==========================================================
     raceDrivers.forEach(driver => {
         const baseRisk = 0.10; 
         const maxStabilityEffect = 0.08; 
@@ -249,32 +260,51 @@ function simulateRace(drivers, race) {
         }
     });
 
-    // ==========================================================
     // 4. 結果の集計とポイント付与 (決勝順位確定)
-    // ==========================================================
     const raceFinishers = raceDrivers.filter(d => !d.dnfOccurred).sort((a, b) => b.score - a.score);
-    const raceRetirees = raceDrivers.filter(d => d.dnfOccurred).sort((a, b) => a.score - b.score); // リタイアはスコアの低い順に後方へ
+    const raceRetirees = raceDrivers.filter(d => d.dnfOccurred).sort((a, b) => a.score - b.score);
     const finalRaceOrder = [...raceFinishers, ...raceRetirees];
     
-    const finalResults = []; // 詳細結果格納用
+    const finalResults = []; 
     
-    // ポイントの付与と統計の集計
+    // メンタリティの変動を計算
     finalRaceOrder.forEach((driverScore, index) => {
         const position = index + 1;
         
-        // 詳細結果の整形
+        // メンタリティ増減を計算
+        let mentalityChange = MENTALITY_CHANGE_BY_POS[position] || 0;
+        
+        if (driverScore.dnfOccurred) {
+            mentalityChange += DNF_MENTALITY_PENALTY;
+        }
+        
+        // チームメイトと比較
+        const teammate = finalRaceOrder.find(d => d.team === driverScore.team && d.name !== driverScore.name);
+        if (teammate) {
+            if (position < finalRaceOrder.indexOf(teammate) + 1) {
+                mentalityChange += TEAMMATE_WIN_MENTALITY;
+            } else {
+                mentalityChange += TEAMMATE_LOSE_MENTALITY;
+            }
+        }
+        
+        // メンタリティの変動率補正を適用
+        mentalityChange *= getMentalityChangeRate(driverScore.mentality);
+        
+        driverScore.mentalityChange = mentalityChange;
+        driverScore.finalPosition = position;
+        
         finalResults.push({
             position: position,
             name: driverScore.name,
             team: driverScore.team,
             status: driverScore.dnfOccurred ? "DNF" : "完走",
-            qualPosition: driverScore.qualPosition
+            qualPosition: driverScore.qualPosition,
+            mentalityChange: mentalityChange 
         });
         
-        // ポイント統計
         if (position <= POINTS_SYSTEM.length && !driverScore.dnfOccurred) {
             driverScore.racePoints += POINTS_SYSTEM[index];
-            driverScore.pointsFinishes = 1; 
             if (position === 1) driverScore.wins = 1; 
             if (position <= 3) driverScore.podiums = 1; 
         }
@@ -283,7 +313,7 @@ function simulateRace(drivers, race) {
     return {
         winner: raceFinishers.length > 0 ? raceFinishers[0].name : "DNF (全員リタイア)",
         pp: qualificationResults[0].name,
-        detailedResults: finalResults, // 1-20位の詳細結果
+        detailedResults: finalResults,
         stats: raceDrivers.map(d => ({
             name: d.name,
             team: d.team,
@@ -298,59 +328,86 @@ function simulateRace(drivers, race) {
 }
 
 /**
- * シミュレーション全体を開始する
+ * シミュレーションを初期状態にリセットする
  */
-function startSimulation() {
-    let currentDrivers = createInitialDriversArray();
-    const raceCount = RACE_CALENDAR.length; 
-    let raceWinners = []; 
-
-    document.getElementById('race-count').value = raceCount; 
-
-    for (let i = 0; i < raceCount; i++) {
-        const race = RACE_CALENDAR[i];
-        const raceResult = simulateRace(currentDrivers, race);
-
-        raceWinners.push({
-            id: i, // レースIDとして使用
-            raceName: race.name,
-            winner: raceResult.winner,
-            pp: raceResult.pp, 
-            trackCategory: getTrackCategory(race.track_value),
-            detailedResults: raceResult.detailedResults // 詳細な順位を保存
-        });
-
-        currentDrivers = currentDrivers.map(driver => {
-            const result = raceResult.stats.find(r => r.name === driver.name);
-            if (result) {
-                driver.points += result.racePoints;
-                driver.wins += result.wins;
-                driver.pp += result.pp;
-                driver.podiums += result.podiums;
-                driver.pointsFinishes += result.pointsFinishes;
-                driver.dnf += result.dnf;
-            }
-            return driver;
-        });
-    }
-
-    // グローバル変数に結果を保存
-    window.allRaceResults = raceWinners;
+function initializeSimulation() {
+    currentRound = 0;
+    currentDrivers = createInitialDriversArray();
+    raceWinners = [];
+    window.allRaceResults = [];
 
     updateDriversStandings(currentDrivers);
     updateConstructorsStandings(currentDrivers);
     updateDriverStats(currentDrivers);
-    updateRaceWinners(raceWinners);
+    updateRaceWinners([]); 
     renderMachinePerformanceChart();
+    document.getElementById('current-round').textContent = `現在：0 / 24 戦`;
+}
+
+/**
+ * 指定された回数だけレースをシミュレートする
+ */
+function simulateNextRace(numRaces = 1) {
+    if (currentRound >= RACE_CALENDAR.length) {
+        alert("全レースが終了しました。再度シミュレーションを実行する場合は、初期化してください。");
+        return;
+    }
+
+    const remainingRaces = RACE_CALENDAR.length - currentRound;
+    const racesToSimulate = Math.min(numRaces, remainingRaces);
+
+    for (let i = 0; i < racesToSimulate; i++) {
+        const race = RACE_CALENDAR[currentRound];
+        const raceResult = simulateRace(currentDrivers, race);
+
+        raceWinners.push({
+            id: currentRound,
+            raceName: race.name,
+            winner: raceResult.winner,
+            pp: raceResult.pp,
+            trackCategory: getTrackCategory(race.track_value),
+            detailedResults: raceResult.detailedResults
+        });
+
+        // メンタリティと入賞数を加算
+        currentDrivers = currentDrivers.map(driver => {
+            const raceStat = raceResult.stats.find(s => s.name === driver.name);
+            const raceFinalResult = raceResult.detailedResults.find(d => d.name === driver.name);
+
+            if (raceStat && raceFinalResult) {
+                driver.points += raceStat.racePoints;
+                driver.wins += raceStat.wins;
+                driver.pp += raceStat.pp;
+                driver.podiums += raceStat.podiums;
+                driver.dnf += raceStat.dnf;
+                
+                // メンタリティの変動を適用し、-100から100の範囲に制限
+                driver.mentality += raceFinalResult.mentalityChange;
+                driver.mentality = Math.max(-100, Math.min(100, driver.mentality));
+                
+                if (raceFinalResult.position <= 10) {
+                    driver.pointsFinishes += 1;
+                }
+            }
+            return driver;
+        });
+        currentRound++;
+    }
+
+    // グローバル変数に結果を保存
+    window.allRaceResults = raceWinners;
+    
+    // UIを更新
+    updateDriversStandings(currentDrivers);
+    updateConstructorsStandings(currentDrivers);
+    updateDriverStats(currentDrivers);
+    updateRaceWinners(raceWinners);
+    document.getElementById('current-round').textContent = `現在：${currentRound} / 24 戦`;
 }
 
 // ==========================================================
 // ランキング/グラフ表示関数
 // ==========================================================
-
-/**
- * ドライバーズ・ランキングを更新する
- */
 function updateDriversStandings(finalDrivers) {
     finalDrivers.sort((a, b) => b.points - a.points);
     const tbody = document.getElementById('drivers-standings').getElementsByTagName('tbody')[0];
@@ -358,15 +415,17 @@ function updateDriversStandings(finalDrivers) {
     finalDrivers.forEach((driver, index) => {
         const row = tbody.insertRow();
         row.insertCell().textContent = index + 1;
-        row.insertCell().textContent = driver.name; 
+        const driverCell = row.insertCell();
+        driverCell.textContent = driver.name;
+        driverCell.style.textDecoration = 'underline';
+        driverCell.style.textDecorationColor = TEAM_COLORS[driver.team];
+        driverCell.style.textDecorationThickness = '2px';
+        driverCell.style.cursor = 'pointer';
+        driverCell.onclick = () => showMentalityModal(driver.name, driver.mentality, driver.team);
         row.insertCell().textContent = driver.team;
         row.insertCell().textContent = driver.points;
     });
 }
-
-/**
- * コンストラクターズ・ランキングを更新する (元の3カラム表示)
- */
 function updateConstructorsStandings(finalDrivers) {
     const constructorsPoints = {};
     finalDrivers.forEach(driver => {
@@ -381,64 +440,56 @@ function updateConstructorsStandings(finalDrivers) {
     standings.sort((a, b) => b.points - a.points);
     const tbody = document.getElementById('constructors-standings').getElementsByTagName('tbody')[0];
     tbody.innerHTML = ''; 
-
     standings.forEach((constructor, index) => {
         const row = tbody.insertRow();
         row.insertCell().textContent = index + 1;
-        row.insertCell().textContent = constructor.team;
+        const teamCell = row.insertCell();
+        teamCell.textContent = constructor.team;
+        teamCell.style.textDecoration = 'underline';
+        teamCell.style.textDecorationColor = TEAM_COLORS[constructor.team];
+        teamCell.style.textDecorationThickness = '2px';
         row.insertCell().textContent = constructor.points;
     });
 }
-
-/**
- * ドライバー統計を更新する
- */
 function updateDriverStats(finalDrivers) {
     finalDrivers.sort((a, b) => b.points - a.points);
     const tbody = document.getElementById('driver-stats').getElementsByTagName('tbody')[0];
     tbody.innerHTML = ''; 
-
     finalDrivers.forEach(driver => {
         const row = tbody.insertRow();
-        row.insertCell().textContent = driver.name; 
+        const driverCell = row.insertCell();
+        driverCell.textContent = driver.name;
+        driverCell.style.textDecoration = 'underline';
+        driverCell.style.textDecorationColor = TEAM_COLORS[driver.team];
+        driverCell.style.textDecorationThickness = '2px';
+        driverCell.style.cursor = 'pointer';
+        driverCell.onclick = () => showMentalityModal(driver.name, driver.mentality, driver.team);
         row.insertCell().textContent = driver.wins;
         row.insertCell().textContent = driver.pp;
         row.insertCell().textContent = driver.podiums;
         row.insertCell().textContent = driver.pointsFinishes;
         row.insertCell().textContent = driver.dnf;
+        row.insertCell().textContent = Math.round(driver.mentality); // メンタリティを追加
     });
 }
-
-/**
- * レースごとの勝者を一覧表示する (クリックイベント追加)
- */
 function updateRaceWinners(winners) {
     const tbody = document.getElementById('race-winners').getElementsByTagName('tbody')[0];
     tbody.innerHTML = ''; 
-
     winners.forEach((race, index) => {
         const row = tbody.insertRow();
         row.insertCell().textContent = index + 1; 
-        
         const raceCell = row.insertCell();
         raceCell.textContent = `${race.raceName} (${race.trackCategory})`;
-        // クリックイベントを追加
         raceCell.style.cursor = 'pointer'; 
         raceCell.style.textDecoration = 'underline'; 
         raceCell.addEventListener('click', () => showDetailedResults(race.id));
-
         row.insertCell().textContent = race.pp;
         row.insertCell().textContent = race.winner; 
     });
 }
-
-/**
- * 詳細結果をポップアップ表示する関数
- */
 function showDetailedResults(raceId) {
     const race = window.allRaceResults.find(r => r.id === raceId);
     if (!race) return;
-
     let tableHtml = `
         <p><strong>レース名:</strong> ${race.raceName}</p>
         <div style="display: flex; justify-content: space-around;">
@@ -448,8 +499,6 @@ function showDetailedResults(raceId) {
                     <tr><th>順位</th><th>ドライバー</th><th>チーム</th></tr>
                 </thead>
                 <tbody>`;
-
-    // 予選順位でソートして表示 (qualPositionが予選順位)
     race.detailedResults
         .slice()
         .sort((a, b) => a.qualPosition - b.qualPosition)
@@ -461,19 +510,15 @@ function showDetailedResults(raceId) {
                     <td>${d.team}</td>
                 </tr>`;
         });
-        
     tableHtml += `
                 </tbody>
             </table>
-            
             <table class="detail-table" style="margin-left: 20px;">
                 <thead>
                     <tr><th colspan="3" style="background-color: #e0f0e0;">決勝順位</th></tr>
                     <tr><th>順位</th><th>ドライバー</th><th>ステータス</th></tr>
                 </thead>
                 <tbody>`;
-    
-    // 決勝順位でソートして表示 (positionが決勝順位)
     race.detailedResults
         .slice()
         .sort((a, b) => a.position - b.position)
@@ -485,13 +530,10 @@ function showDetailedResults(raceId) {
                     <td>${d.status}</td>
                 </tr>`;
         });
-
     tableHtml += `
                 </tbody>
             </table>
         </div>`;
-
-    // ポップアップ表示 (簡易的なもの)
     const modal = document.createElement('div');
     modal.style.position = 'fixed';
     modal.style.top = '0';
@@ -511,8 +553,42 @@ function showDetailedResults(raceId) {
         </div>`;
     document.body.appendChild(modal);
 }
+function showMentalityModal(driverName, mentality, team) {
+    const modal = document.createElement('div');
+    modal.style.position = 'fixed';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.width = '100%';
+    modal.style.height = '100%';
+    modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+    modal.style.zIndex = '1000';
+    modal.style.display = 'flex';
+    modal.style.justifyContent = 'center';
+    modal.style.alignItems = 'center';
+    
+    let statusText = '';
+    if (mentality > 50) {
+        statusText = '絶好調！集中力・モチベーションが最高潮です。';
+    } else if (mentality > 10) {
+        statusText = '好調。安定したパフォーマンスが期待できます。';
+    } else if (mentality > -10) {
+        statusText = '普通。特別なパフォーマンスは期待できません。';
+    } else if (mentality > -50) {
+        statusText = '不調。ミスや判断ミスが増えるかもしれません。';
+    } else {
+        statusText = 'スランプ。このままではリタイアの危険性が高まります。';
+    }
 
-
+    modal.innerHTML = `
+        <div style="background: white; padding: 20px; border-radius: 8px; max-width: 400px; text-align: center;">
+            <div style="width: 50px; height: 5px; background-color: ${TEAM_COLORS[team]}; margin: 0 auto 10px;"></div>
+            <h3>${driverName}</h3>
+            <p><strong>現在のメンタリティ:</strong> ${Math.round(mentality)}</p>
+            <p style="margin-top: 20px;"><strong>状態:</strong> ${statusText}</p>
+            <button onclick="document.body.removeChild(this.parentNode.parentNode)" style="margin-top: 20px;">閉じる</button>
+        </div>`;
+    document.body.appendChild(modal);
+}
 let machineChart = null; 
 function renderMachinePerformanceChart() {
     const teamAverages = Object.entries(TEAM_RATES).map(([team, rates]) => {
@@ -523,18 +599,13 @@ function renderMachinePerformanceChart() {
             compatibility: rates.compatibility 
         };
     });
-
     const sortedTeams = teamAverages.sort((a, b) => b.average - a.average); 
-
     const teams = sortedTeams.map(t => t.team);
     const rates = sortedTeams.map(t => t.average); 
-
     const ctx = document.getElementById('machinePerformanceChart').getContext('2d');
-
     if (machineChart) {
         machineChart.destroy();
     }
-
     machineChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -596,7 +667,6 @@ function renderMachinePerformanceChart() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // スタイルを少し追加して見やすくする (CSSがない場合)
     const style = document.createElement('style');
     style.innerHTML = `
         .detail-table {
@@ -612,6 +682,16 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
     document.head.appendChild(style);
 
-    document.getElementById('race-count').disabled = true;
-    startSimulation(); 
+    document.getElementById('initialize-button').addEventListener('click', initializeSimulation);
+    document.getElementById('next-race-button').addEventListener('click', () => simulateNextRace(1));
+    document.getElementById('step-races-button').addEventListener('click', () => {
+        const stepCount = parseInt(document.getElementById('step-count').value, 10);
+        if (!isNaN(stepCount) && stepCount > 0) {
+            simulateNextRace(stepCount);
+        } else {
+            alert('有効なレース数を入力してください。');
+        }
+    });
+
+    initializeSimulation();
 });
