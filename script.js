@@ -1,861 +1,617 @@
+// ******************************************************
+// マシンパフォーマンスレート (Attack/Pace/Compatibilityに分割)
+// ******************************************************
+const TEAM_RATES = {
+    // team: { attack_rate: 予選, pace_rate: 決勝, compatibility: コース相性 (0: 低速, 100: 高速) }
+    "Red Bull": { attack_rate: 87, pace_rate: 89, compatibility: 65 },
+    "Ferrari": { attack_rate: 92, pace_rate: 88, compatibility: 30 },
+    "McLaren": { attack_rate: 94, pace_rate: 98, compatibility: 85 },
+    "Mercedes": { attack_rate: 89, pace_rate: 89, compatibility: 50 },
+    "Williams": { attack_rate: 82, pace_rate: 84, compatibility: 75 },
+    "Aston Martin": { attack_rate: 83, pace_rate: 81, compatibility: 40 },
+    "Alpine": { attack_rate: 76, pace: 78, compatibility: 55 },
+    "Racing Bulls": { attack_rate: 81, pace_rate: 83, compatibility: 60 },
+    "Kick Sauber": { attack_rate: 80, pace_rate: 78, compatibility: 20 },
+    "Haas": { attack_rate: 81, pace_rate: 81, compatibility: 45 },
+};
+
+// 全チームのカラー定義
+const TEAM_COLORS = {
+    "Red Bull": '#0600EF',       
+    "Ferrari": '#DC0000',        
+    "McLaren": '#FF8700',        
+    "Mercedes": '#00D2BE',       
+    "Williams": '#005AFF',       
+    "Aston Martin": '#006F62',   
+    "Alpine": '#0090FF',         
+    "Racing Bulls": '#4A64EB',   
+    "Kick Sauber": '#52E41C',    
+    "Haas": '#B6B6B6',           
+};
+
+// ドライバープール (Attack, Pace, Stability)
+const DRIVER_POOL = {
+    // 選手名: { attack(予選), pace(決勝), stability(安定性), age, team }
+    "Max Verstappen": { attack: 96, pace: 95, stability: 97, age: 28, team: "Red Bull" }, 
+    "Liam Lawson": { attack: 80, pace: 80, stability: 85, age: 24, team: "Red Bull" },
+    "Charles Leclerc": { attack: 94, pace: 90, stability: 89, age: 28, team: "Ferrari" },
+    "Lewis Hamilton": { attack: 90, pace: 92, stability: 95, age: 41, team: "Ferrari" },
+    "Lando Norris": { attack: 91, pace: 93, stability: 90, age: 26, team: "McLaren" },
+    "Oscar Piastri": { attack: 88, pace: 89, stability: 86, age: 25, team: "McLaren" },
+    "George Russell": { attack: 93, pace: 91, stability: 88, age: 27, team: "Mercedes" },
+    "A. Kimi Antonelli": { attack: 82, pace: 78, stability: 75, age: 19, team: "Mercedes" },
+    "Fernando Alonso": { attack: 85, pace: 89, stability: 93, age: 44, team: "Aston Martin" },
+    "Lance Stroll": { attack: 76, pace: 74, stability: 70, age: 27, team: "Aston Martin" },
+    "Pierre Gasly": { attack: 83, pace: 81, stability: 82, age: 30, team: "Alpine" },
+    "Jack Doohan": { attack: 73, pace: 75, stability: 76, age: 23, team: "Alpine" },
+    "Alex Albon": { attack: 85, pace: 83, stability: 84, age: 30, team: "Williams" },
+    "Carlos Sainz": { attack: 87, pace: 88, stability: 91, age: 31, team: "Williams" },
+    "Yuki Tsunoda": { attack: 81, pace: 79, stability: 80, age: 25, team: "Racing Bulls" },
+    "Isack Hadjar": { attack: 79, pace: 80, stability: 75, age: 21, team: "Racing Bulls" },
+    "Nico Hulkenberg": { attack: 78, pace: 77, stability: 83, age: 38, team: "Kick Sauber" },
+    "Gabriel Bortoleto": { attack: 77, pace: 78, stability: 72, age: 22, team: "Kick Sauber" },
+    "Esteban Ocon": { attack: 79, pace: 77, stability: 81, age: 29, team: "Haas" },
+    "Oliver Bearman": { attack: 75, pace: 76, stability: 74, age: 20, team: "Haas" },
+};
+
+// ポイントシステム (上位10名のみ)
+const POINTS_SYSTEM = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
+
+// ******************************************************
+// 24戦のサーキットカレンダー (0: 低速, 100: 高速)
+// ******************************************************
+const RACE_CALENDAR = [
+    { name: "バーレーンGP", track_value: 60 }, { name: "サウジアラビアGP", track_value: 90 },
+    { name: "オーストラリアGP", track_value: 55 }, { name: "日本GP", track_value: 75 },
+    { name: "中国GP", track_value: 50 }, { name: "マイアミGP", track_value: 45 },
+    { name: "エミリア・ロマーニャGP", track_value: 35 }, { name: "モナコGP", track_value: 5 }, 
+    { name: "カナダGP", track_value: 40 }, { name: "スペインGP", track_value: 55 },
+    { name: "オーストリアGP", track_value: 65 }, { name: "イギリスGP", track_value: 80 },
+    { name: "ハンガリーGP", track_value: 20 }, { name: "ベルギーGP", track_value: 95 }, 
+    { name: "オランダGP", track_value: 30 }, { name: "モンツァGP", track_value: 100 }, 
+    { name: "アゼルバイジャンGP", track_value: 70 }, { name: "シンガポールGP", track_value: 15 }, 
+    { name: "アメリカGP", track_value: 60 }, { name: "メキシコGP", track_value: 50 },
+    { name: "サンパウロGP", track_value: 45 }, { name: "ラスベガスGP", track_value: 85 },
+    { name: "カタールGP", track_value: 70 }, { name: "アブダビGP", track_value: 50 },
+];
+
+/**
+ * コース相性値 (0-100) をカテゴリ名に変換する
+ * @param {number} value - コース相性値
+ * @returns {string} カテゴリ名
+ */
+function getTrackCategory(value) {
+    if (value <= 10) return "超低速";
+    if (value <= 30) return "低速";
+    if (value <= 70) return "中速";
+    if (value <= 90) return "高速";
+    return "超高速";
+}
+
+/**
+ * マシンのCompatibility値に基づき、得意分野のテキストを返す
+ * @param {number} value - Compatibility値 (0-100)
+ * @returns {string} 得意分野のテキスト
+ */
+function getCompatibilityText(value) {
+    if (value <= 20) return "超低速特化 (0-20)";
+    if (value <= 40) return "低速・タイト (21-40)";
+    if (value <= 60) return "平均的・中速 (41-60)";
+    if (value <= 80) return "高速サーキット得意 (61-80)";
+    return "超高速特化 (81-100)";
+}
+
+/**
+ * マシンとコースの相性を計算し、パフォーマンス補正値を返す
+ * @param {string} team - チーム名
+ * @param {number} trackValue - コース相性値 (0-100)
+ * @returns {number} 補正係数 (例: 1.2, 0.8)
+ */
+function calculatePerformanceBoost(team, trackValue) {
+    const teamCompatibility = TEAM_RATES[team].compatibility;
+    const difference = Math.abs(teamCompatibility - trackValue);
+    
+    // 差が0のとき +0.2、差が100のとき -0.2
+    const normalizedDiff = (difference - 50) / 50; 
+    const boost = -normalizedDiff * 0.2; 
+
+    return 1 + boost; 
+}
+
+/**
+ * 予選順位に基づき、決勝パフォーマンススコアに加算するボーナス/ペナルティを計算する
+ * 1位: +5.0, 20位: -5.0 (約±5%の性能差)
+ * @param {number} qualPosition - 予選順位 (1-20)
+ * @returns {number} グリッドボーナス/ペナルティ
+ */
+function calculateGridAdvantage(qualPosition) {
+    // 1位: 1, 20位: 20。中央(10.5位)を0にする
+    const normalizedPosition = qualPosition - 10.5;
+    // -9.5 (1位) から +9.5 (20位) の範囲
+    
+    // 最大±5.0の変動を与える
+    const gridAdvantage = -normalizedPosition * (5.0 / 9.5); 
+    return gridAdvantage;
+}
+
+
+function createInitialDriversArray() {
+    return Object.entries(DRIVER_POOL).map(([name, data]) => ({
+        name: name,
+        team: data.team,
+        attackRate: data.attack, 
+        paceRate: data.pace, 
+        stabilityRate: data.stability, 
+        points: 0, 
+        wins: 0, 
+        pp: 0, 
+        podiums: 0, 
+        pointsFinishes: 0, 
+        dnf: 0 
+    }));
+}
+
+/**
+ * 1レースの結果をシミュレーションし、ポイントと統計を計算する
+ * @param {Array<Object>} drivers - ドライバーリスト
+ * @param {Object} race - レース情報 ({ name, track_value })
+ * @returns {Object} レース結果と統計
+ */
+function simulateRace(drivers, race) {
+    const MACHINE_WEIGHT = 0.7; 
+    const DRIVER_WEIGHT = 0.3;  
+
+    const trackValue = race.track_value;
+    
+    const raceDrivers = drivers.map(d => ({
+        ...d,
+        wins: 0,
+        pp: 0,
+        podiums: 0,
+        dnfOccurred: false,
+        score: 0,
+        racePoints: 0,
+        qualPosition: 0 // 予選順位を格納
+    }));
+
+    // ==========================================================
+    // 1. 予選シミュレーション (PP決定 & 1-20位確定) 
+    // ==========================================================
+    let qualificationScores = raceDrivers.map(driver => {
+        const team = driver.team;
+        const machineRate = TEAM_RATES[team].attack_rate;
+        const driverSkill = driver.attackRate; 
+        
+        const boostFactor = calculatePerformanceBoost(team, trackValue); 
+        const effectiveMachineRate = machineRate * boostFactor; 
+        
+        const basePerformance = (effectiveMachineRate * 0.7) + (driverSkill * 0.3);
+        const randomFactor = Math.random() * 30 - 15; // 運要素を強化
+        
+        return {
+            ...driver,
+            score: basePerformance + randomFactor
+        };
+    }).sort((a, b) => b.score - a.score);
+
+    // 予選順位を確定し、一時オブジェクトに格納
+    const qualificationResults = qualificationScores.map((d, index) => ({
+        name: d.name,
+        team: d.team,
+        qualPosition: index + 1 // 予選順位 1-20位
+    }));
+    
+    // 予選順位を raceDrivers に反映
+    qualificationResults.forEach(qResult => {
+        const driver = raceDrivers.find(d => d.name === qResult.name);
+        if (driver) {
+            driver.qualPosition = qResult.qualPosition;
+            if (driver.qualPosition === 1) driver.pp = 1;
+        }
+    });
+
+    // ==========================================================
+    // 2. 決勝パフォーマンススコア計算 (予選順位を考慮)
+    // ==========================================================
+    raceDrivers.forEach(driver => {
+        const team = driver.team;
+        const machineRate = TEAM_RATES[team].pace_rate;
+        const driverSkill = driver.paceRate; 
+
+        const boostFactor = calculatePerformanceBoost(team, trackValue);
+        const effectiveMachineRate = machineRate * boostFactor; 
+
+        // 予選順位によるグリッドアドバンテージを計算
+        const gridAdvantage = calculateGridAdvantage(driver.qualPosition); 
+
+        const basePerformance = 
+            (effectiveMachineRate * MACHINE_WEIGHT) + 
+            (driverSkill * DRIVER_WEIGHT);
+            
+        const randomFactor = Math.random() * 20 - 10; 
+        
+        // 予選順位ボーナスを加算して決勝スコアを決定
+        driver.score = basePerformance + randomFactor + gridAdvantage;
+    });
+
+    // ==========================================================
+    // 3. DNF/クラッシュのシミュレーション
+    // ==========================================================
+    raceDrivers.forEach(driver => {
+        const baseRisk = 0.10; 
+        const maxStabilityEffect = 0.08; 
+        const stabilityFactor = (driver.stabilityRate - 70) / 30; 
+        const riskReduction = Math.max(0, stabilityFactor) * maxStabilityEffect;
+        const dnfChance = Math.max(0.02, baseRisk - riskReduction); 
+        
+        if (Math.random() < dnfChance) {
+            driver.dnfOccurred = true;
+        }
+    });
+
+    // ==========================================================
+    // 4. 結果の集計とポイント付与 (決勝順位確定)
+    // ==========================================================
+    const raceFinishers = raceDrivers.filter(d => !d.dnfOccurred).sort((a, b) => b.score - a.score);
+    const raceRetirees = raceDrivers.filter(d => d.dnfOccurred).sort((a, b) => a.score - b.score); // リタイアはスコアの低い順に後方へ
+    const finalRaceOrder = [...raceFinishers, ...raceRetirees];
+    
+    const finalResults = []; // 詳細結果格納用
+    
+    // ポイントの付与と統計の集計
+    finalRaceOrder.forEach((driverScore, index) => {
+        const position = index + 1;
+        
+        // 詳細結果の整形
+        finalResults.push({
+            position: position,
+            name: driverScore.name,
+            team: driverScore.team,
+            status: driverScore.dnfOccurred ? "DNF" : "完走",
+            qualPosition: driverScore.qualPosition
+        });
+        
+        // ポイント統計
+        if (position <= POINTS_SYSTEM.length && !driverScore.dnfOccurred) {
+            driverScore.racePoints += POINTS_SYSTEM[index];
+            driverScore.pointsFinishes = 1; 
+            if (position === 1) driverScore.wins = 1; 
+            if (position <= 3) driverScore.podiums = 1; 
+        }
+    });
+
+    return {
+        winner: raceFinishers.length > 0 ? raceFinishers[0].name : "DNF (全員リタイア)",
+        pp: qualificationResults[0].name,
+        detailedResults: finalResults, // 1-20位の詳細結果
+        stats: raceDrivers.map(d => ({
+            name: d.name,
+            team: d.team,
+            racePoints: d.racePoints,
+            wins: d.wins,
+            pp: d.pp,
+            podiums: d.podiums,
+            pointsFinishes: d.pointsFinishes,
+            dnf: d.dnfOccurred ? 1 : 0
+        }))
+    };
+}
+
+/**
+ * シミュレーション全体を開始する
+ */
+function startSimulation() {
+    let currentDrivers = createInitialDriversArray();
+    const raceCount = RACE_CALENDAR.length; 
+    let raceWinners = []; 
+
+    document.getElementById('race-count').value = raceCount; 
+
+    for (let i = 0; i < raceCount; i++) {
+        const race = RACE_CALENDAR[i];
+        const raceResult = simulateRace(currentDrivers, race);
+
+        raceWinners.push({
+            id: i, // レースIDとして使用
+            raceName: race.name,
+            winner: raceResult.winner,
+            pp: raceResult.pp, 
+            trackCategory: getTrackCategory(race.track_value),
+            detailedResults: raceResult.detailedResults // 詳細な順位を保存
+        });
+
+        currentDrivers = currentDrivers.map(driver => {
+            const result = raceResult.stats.find(r => r.name === driver.name);
+            if (result) {
+                driver.points += result.racePoints;
+                driver.wins += result.wins;
+                driver.pp += result.pp;
+                driver.podiums += result.podiums;
+                driver.pointsFinishes += result.pointsFinishes;
+                driver.dnf += result.dnf;
+            }
+            return driver;
+        });
+    }
+
+    // グローバル変数に結果を保存
+    window.allRaceResults = raceWinners;
+
+    updateDriversStandings(currentDrivers);
+    updateConstructorsStandings(currentDrivers);
+    updateDriverStats(currentDrivers);
+    updateRaceWinners(raceWinners);
+    renderMachinePerformanceChart();
+}
+
+// ==========================================================
+// ランキング/グラフ表示関数
+// ==========================================================
+
+/**
+ * ドライバーズ・ランキングを更新する
+ */
+function updateDriversStandings(finalDrivers) {
+    finalDrivers.sort((a, b) => b.points - a.points);
+    const tbody = document.getElementById('drivers-standings').getElementsByTagName('tbody')[0];
+    tbody.innerHTML = ''; 
+    finalDrivers.forEach((driver, index) => {
+        const row = tbody.insertRow();
+        row.insertCell().textContent = index + 1;
+        row.insertCell().textContent = driver.name; 
+        row.insertCell().textContent = driver.team;
+        row.insertCell().textContent = driver.points;
+    });
+}
+
+/**
+ * コンストラクターズ・ランキングを更新する (元の3カラム表示)
+ */
+function updateConstructorsStandings(finalDrivers) {
+    const constructorsPoints = {};
+    finalDrivers.forEach(driver => {
+        const team = driver.team;
+        if (!constructorsPoints[team]) constructorsPoints[team] = 0;
+        constructorsPoints[team] += driver.points;
+    });
+    const standings = Object.keys(constructorsPoints).map(team => ({
+        team: team,
+        points: constructorsPoints[team],
+    }));
+    standings.sort((a, b) => b.points - a.points);
+    const tbody = document.getElementById('constructors-standings').getElementsByTagName('tbody')[0];
+    tbody.innerHTML = ''; 
+
+    standings.forEach((constructor, index) => {
+        const row = tbody.insertRow();
+        row.insertCell().textContent = index + 1;
+        row.insertCell().textContent = constructor.team;
+        row.insertCell().textContent = constructor.points;
+    });
+}
+
+/**
+ * ドライバー統計を更新する
+ */
+function updateDriverStats(finalDrivers) {
+    finalDrivers.sort((a, b) => b.points - a.points);
+    const tbody = document.getElementById('driver-stats').getElementsByTagName('tbody')[0];
+    tbody.innerHTML = ''; 
+
+    finalDrivers.forEach(driver => {
+        const row = tbody.insertRow();
+        row.insertCell().textContent = driver.name; 
+        row.insertCell().textContent = driver.wins;
+        row.insertCell().textContent = driver.pp;
+        row.insertCell().textContent = driver.podiums;
+        row.insertCell().textContent = driver.pointsFinishes;
+        row.insertCell().textContent = driver.dnf;
+    });
+}
+
+/**
+ * レースごとの勝者を一覧表示する (クリックイベント追加)
+ */
+function updateRaceWinners(winners) {
+    const tbody = document.getElementById('race-winners').getElementsByTagName('tbody')[0];
+    tbody.innerHTML = ''; 
+
+    winners.forEach((race, index) => {
+        const row = tbody.insertRow();
+        row.insertCell().textContent = index + 1; 
+        
+        const raceCell = row.insertCell();
+        raceCell.textContent = `${race.raceName} (${race.trackCategory})`;
+        // クリックイベントを追加
+        raceCell.style.cursor = 'pointer'; 
+        raceCell.style.textDecoration = 'underline'; 
+        raceCell.addEventListener('click', () => showDetailedResults(race.id));
+
+        row.insertCell().textContent = race.pp;
+        row.insertCell().textContent = race.winner; 
+    });
+}
+
+/**
+ * 詳細結果をポップアップ表示する関数
+ */
+function showDetailedResults(raceId) {
+    const race = window.allRaceResults.find(r => r.id === raceId);
+    if (!race) return;
+
+    let tableHtml = `
+        <p><strong>レース名:</strong> ${race.raceName}</p>
+        <div style="display: flex; justify-content: space-around;">
+            <table class="detail-table">
+                <thead>
+                    <tr><th colspan="3" style="background-color: #f0f0f0;">予選順位 (PP)</th></tr>
+                    <tr><th>順位</th><th>ドライバー</th><th>チーム</th></tr>
+                </thead>
+                <tbody>`;
+
+    // 予選順位でソートして表示 (qualPositionが予選順位)
+    race.detailedResults
+        .slice()
+        .sort((a, b) => a.qualPosition - b.qualPosition)
+        .forEach(d => {
+            tableHtml += `
+                <tr>
+                    <td>${d.qualPosition}</td>
+                    <td>${d.name}</td>
+                    <td>${d.team}</td>
+                </tr>`;
+        });
+        
+    tableHtml += `
+                </tbody>
+            </table>
+            
+            <table class="detail-table" style="margin-left: 20px;">
+                <thead>
+                    <tr><th colspan="3" style="background-color: #e0f0e0;">決勝順位</th></tr>
+                    <tr><th>順位</th><th>ドライバー</th><th>ステータス</th></tr>
+                </thead>
+                <tbody>`;
+    
+    // 決勝順位でソートして表示 (positionが決勝順位)
+    race.detailedResults
+        .slice()
+        .sort((a, b) => a.position - b.position)
+        .forEach(d => {
+            tableHtml += `
+                <tr>
+                    <td>${d.position}</td>
+                    <td>${d.name}</td>
+                    <td>${d.status}</td>
+                </tr>`;
+        });
+
+    tableHtml += `
+                </tbody>
+            </table>
+        </div>`;
+
+    // ポップアップ表示 (簡易的なもの)
+    const modal = document.createElement('div');
+    modal.style.position = 'fixed';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.width = '100%';
+    modal.style.height = '100%';
+    modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+    modal.style.zIndex = '1000';
+    modal.style.display = 'flex';
+    modal.style.justifyContent = 'center';
+    modal.style.alignItems = 'center';
+    modal.innerHTML = `
+        <div style="background: white; padding: 20px; border-radius: 8px; max-width: 90%; max-height: 90%; overflow-y: auto;">
+            <h3>${race.raceName} - 詳細結果</h3>
+            ${tableHtml}
+            <button onclick="document.body.removeChild(this.parentNode.parentNode)" style="margin-top: 20px;">閉じる</button>
+        </div>`;
+    document.body.appendChild(modal);
+}
+
+
+let machineChart = null; 
+function renderMachinePerformanceChart() {
+    const teamAverages = Object.entries(TEAM_RATES).map(([team, rates]) => {
+        const average = (rates.attack_rate + rates.pace_rate) / 2;
+        return { 
+            team, 
+            average,
+            compatibility: rates.compatibility 
+        };
+    });
+
+    const sortedTeams = teamAverages.sort((a, b) => b.average - a.average); 
+
+    const teams = sortedTeams.map(t => t.team);
+    const rates = sortedTeams.map(t => t.average); 
+
+    const ctx = document.getElementById('machinePerformanceChart').getContext('2d');
+
+    if (machineChart) {
+        machineChart.destroy();
+    }
+
+    machineChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: teams,
+            datasets: [{
+                label: 'マシン性能レート (Attack/Pace 平均)',
+                data: rates,
+                backgroundColor: teams.map(team => TEAM_COLORS[team] || '#AAAAAA'), 
+                borderColor: '#333',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    min: 75, 
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: '平均レート'
+                    }
+                },
+                x: {
+                    ticks: {
+                        autoSkip: false,
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: true,
+                    text: 'F1 2025 コンストラクターズ マシンレート (平均性能順)'
+                },
+                tooltip: {
+                     callbacks: {
+                         afterLabel: function(context) {
+                             const team = context.label;
+                             const teamRate = TEAM_RATES[team];
+                             const compatibilityText = getCompatibilityText(teamRate.compatibility);
+                             return [
+                                 `Attack: ${teamRate.attack_rate}`,
+                                 `Pace: ${teamRate.pace_rate}`,
+                                 `Compatibility: ${teamRate.compatibility}`,
+                                 `得意分野: ${compatibilityText}`
+                             ];
+                         }
+                     }
+                 }
+            }
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    const sidebar = document.querySelector('.sidebar');
-    const schoolList = document.getElementById('schoolList');
-    const newSchoolButton = document.getElementById('newSchoolButton');
-    const currentSchoolTitle = document.getElementById('currentSchoolTitle');
-    const scoreInputsContainer = document.getElementById('scoreInputsContainer');
-    const calculateButton = document.getElementById('calculateButton');
-    const scoresDisplay = document.getElementById('scoresDisplay');
-    const averageResult = document.getElementById('averageResult');
-    const groupList = document.getElementById('groupList');
-    const newGroupButton = document.getElementById('newGroupButton');
-    const groupAverageResults = document.getElementById('groupAverageResults');
-
-    let schools = [];
-    let activeSchoolId = null;
-    let activeGroupId = null;
-
-    // Helper function to generate a random bright color
-    function getRandomLightColor() {
-        const hue = Math.floor(Math.random() * 360);
-        return `hsl(${hue}, 70%, 85%)`; // Light saturation and lightness
-    }
-
-    // Event listeners (event delegation) remain mostly the same
-
-    scoreInputsContainer.addEventListener('click', (event) => {
-        if (event.target.classList.contains('delete-score-btn')) {
-            const entryDiv = event.target.closest('.score-entry');
-            if (entryDiv) {
-                entryDiv.remove();
-                renumberScoreEntries();
-                updateCurrentSchoolScores();
-            }
+    // スタイルを少し追加して見やすくする (CSSがない場合)
+    const style = document.createElement('style');
+    style.innerHTML = `
+        .detail-table {
+            border-collapse: collapse;
+            width: 45%;
         }
-
-        if (event.target.classList.contains('not-taken-btn')) {
-            event.preventDefault();
-            const notTakenBtn = event.target;
-            const entryDiv = notTakenBtn.closest('.score-entry');
-            const scoreInput = entryDiv.querySelector('.score-input');
-
-            notTakenBtn.classList.toggle('active');
-            entryDiv.classList.toggle('not-taken');
-
-            if (notTakenBtn.classList.contains('active')) {
-                scoreInput.disabled = true;
-                scoreInput.value = '';
-            } else {
-                scoreInput.disabled = false;
-            }
-            updateCurrentSchoolScores();
+        .detail-table th, .detail-table td {
+            border: 1px solid #ccc;
+            padding: 5px 10px;
+            text-align: left;
+            font-size: 0.9em;
         }
-
-        if (event.target.classList.contains('add-student-to-group-btn')) {
-            const groupId = event.target.dataset.groupId;
-            const targetGroupScoresDiv = document.getElementById(`group-scores-${groupId}`);
-            if (targetGroupScoresDiv) {
-                const newScoreObject = { value: null, notTaken: false, groupId: groupId };
-                createNewScoreInput(newScoreObject, targetGroupScoresDiv);
-
-                const activeSchool = schools.find(s => s.id === activeSchoolId);
-                if (activeSchool) {
-                    activeSchool.scores.push(newScoreObject);
-                    saveSchools();
-                }
-                renumberScoreEntries();
-                const lastInput = targetGroupScoresDiv.querySelector('.score-entry:last-child .score-input');
-                if (lastInput) {
-                    lastInput.focus();
-                }
-            }
-        }
-    });
-
-    scoreInputsContainer.addEventListener('input', (event) => {
-        if (event.target.classList.contains('score-input') || event.target.classList.contains('group-select')) {
-            updateCurrentSchoolScores();
-            if (event.target.classList.contains('group-select')) {
-                renderActiveSchoolContent();
-            }
-        }
-    });
-
-    scoreInputsContainer.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter' && event.target.classList.contains('score-input')) {
-            event.preventDefault();
-            const entryDiv = event.target.closest('.score-entry');
-            const groupId = entryDiv.querySelector('.group-select')?.value || 'default';
-            const addBtn = scoreInputsContainer.querySelector(`.add-student-to-group-btn[data-group-id="${groupId}"]`);
-            if (addBtn) {
-                addBtn.click();
-            }
-        }
-    });
-
-    groupList.addEventListener('click', (event) => {
-        const groupItem = event.target.closest('.group-item');
-        if (!groupItem) return;
-
-        const groupId = groupItem.dataset.groupId;
-
-        if (event.target.classList.contains('edit-group-btn')) {
-            makeGroupNameEditable(groupItem, groupId);
-            event.stopPropagation();
-            return;
-        }
-
-        if (event.target.classList.contains('delete-group-btn')) {
-            deleteGroup(groupId);
-            event.stopPropagation();
-            return;
-        }
-
-        activeGroupId = groupId;
-        saveSchools();
-        renderGroupList();
-    });
-
-
-    // Load schools from local storage
-    function loadSchools() {
-        const storedSchools = localStorage.getItem('schools');
-        if (storedSchools) {
-            schools = JSON.parse(storedSchools);
-            activeSchoolId = localStorage.getItem('activeSchoolId');
-
-            schools.forEach(school => {
-                if (!school.groups) {
-                    school.groups = [{ id: 'default', name: 'その他', color: getRandomLightColor() }];
-                } else {
-                    // Ensure all existing groups have a color, add one if missing
-                    school.groups.forEach(group => {
-                        if (!group.color) {
-                            group.color = getRandomLightColor();
-                        }
-                    });
-                }
-                if (school.scores) {
-                    school.scores.forEach(score => {
-                        if (score.groupId === undefined) {
-                            score.groupId = 'default';
-                        }
-                    });
-                }
-            });
-
-        } else {
-            createNewSchool('スクール 1');
-        }
-
-        if (!activeSchoolId && schools.length > 0) {
-            activeSchoolId = schools[0].id;
-        }
-        renderSchoolList();
-        renderActiveSchoolContent();
-    }
-
-    // Save schools to local storage
-    function saveSchools() {
-        localStorage.setItem('schools', JSON.stringify(schools));
-        localStorage.setItem('activeSchoolId', activeSchoolId);
-    }
-
-    // Create a new school
-    function createNewSchool(name = null) {
-        const newId = Date.now().toString();
-        const schoolName = name || `スクール ${schools.length + 1}`;
-        const newSchool = {
-            id: newId,
-            name: schoolName,
-            scores: [],
-            groups: [{ id: 'default', name: 'その他', color: getRandomLightColor() }], // Default group with a color
-            currentScoresDisplay: 'なし',
-            currentAverageResult: '有効な点数を入力してください',
-            statistics: null,
-            groupAverages: {}
-        };
-        schools.push(newSchool);
-        activeSchoolId = newId;
-        saveSchools();
-        renderSchoolList();
-        renderActiveSchoolContent();
-        activeGroupId = 'default';
-    }
-
-    // Render school list (sidebar)
-    function renderSchoolList() {
-        schoolList.innerHTML = '';
-        schools.forEach(school => {
-            const schoolItem = document.createElement('div');
-            schoolItem.className = `school-item ${school.id === activeSchoolId ? 'active' : ''}`;
-            schoolItem.dataset.schoolId = school.id;
-
-            const nameSpan = document.createElement('span');
-            nameSpan.textContent = school.name;
-
-            const buttonsContainer = document.createElement('div');
-            buttonsContainer.className = 'school-item-buttons';
-
-            const editButton = document.createElement('button');
-            editButton.className = 'edit-school-btn';
-            editButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z"/></svg>`;
-
-            const deleteButton = document.createElement('button');
-            deleteButton.className = 'delete-school-btn';
-            deleteButton.dataset.schoolId = school.id;
-            deleteButton.innerHTML = '&times;';
-
-            buttonsContainer.appendChild(editButton);
-            buttonsContainer.appendChild(deleteButton);
-
-            schoolItem.appendChild(nameSpan);
-            schoolItem.appendChild(buttonsContainer);
-            schoolList.appendChild(schoolItem);
-
-            schoolItem.addEventListener('click', (e) => {
-                if (e.target.tagName === 'INPUT' || e.target.closest('.school-item-buttons')) {
-                    return;
-                }
-                activeSchoolId = school.id;
-                saveSchools();
-                renderSchoolList();
-                renderActiveSchoolContent();
-            });
-
-            editButton.addEventListener('click', () => {
-                if (schoolList.querySelector('.school-name-input')) {
-                    return;
-                }
-                makeSchoolNameEditable(school, nameSpan, schoolItem);
-            });
-
-            deleteButton.addEventListener('click', (event) => {
-                event.stopPropagation();
-                deleteSchool(school.id);
-            });
-        });
-    }
-
-    // Make school name editable
-    function makeSchoolNameEditable(school, spanElement, itemElement) {
-        spanElement.style.display = 'none';
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'school-name-input';
-        input.value = school.name;
-
-        itemElement.insertBefore(input, spanElement.nextSibling);
-        input.focus();
-        input.select();
-
-        const finishEditing = (shouldSave) => {
-            input.removeEventListener('blur', onBlur);
-            input.removeEventListener('keydown', onKeydown);
-
-            const newName = input.value.trim();
-            if (shouldSave && newName && newName !== school.name) {
-                school.name = newName;
-                saveSchools();
-                spanElement.textContent = newName;
-                if (school.id === activeSchoolId) {
-                    currentSchoolTitle.textContent = newName;
-                }
-            }
-
-            itemElement.removeChild(input);
-            spanElement.style.display = '';
-        };
-
-        const onBlur = () => finishEditing(true);
-        const onKeydown = (e) => {
-            if (e.key === 'Enter') finishEditing(true);
-            if (e.key === 'Escape') finishEditing(false);
-        };
-
-        input.addEventListener('blur', onBlur);
-        input.addEventListener('keydown', onKeydown);
-    }
-
-    // Render active school content
-    function renderActiveSchoolContent() {
-        const activeSchool = schools.find(s => s.id === activeSchoolId);
-        if (!activeSchool) {
-            createNewSchool('スクール 1');
-            return;
-        }
-
-        currentSchoolTitle.textContent = activeSchool.name;
-        scoresDisplay.textContent = activeSchool.currentScoresDisplay;
-        averageResult.textContent = activeSchool.currentAverageResult;
-
-        renderGroupList();
-        renderGroupAverageResults(activeSchool.groupAverages || {});
-
-        scoreInputsContainer.innerHTML = '';
-
-        const sortedScores = [...activeSchool.scores].sort((a, b) => {
-            const groupA = activeSchool.groups.find(g => g.id === a.groupId)?.name || '';
-            const groupB = activeSchool.groups.find(g => g.id === b.groupId)?.name || '';
-            return groupA.localeCompare(groupB);
-        });
-
-        const groupedScores = sortedScores.reduce((acc, score) => {
-            const groupId = score.groupId || 'default';
-            if (!acc[groupId]) {
-                acc[groupId] = [];
-            }
-            acc[groupId].push(score);
-            return acc;
-        }, {});
-
-        activeSchool.groups.forEach(group => {
-            const groupSection = document.createElement('div');
-            groupSection.className = 'group-section';
-            groupSection.dataset.groupId = group.id;
-            groupSection.style.backgroundColor = group.color; // Apply group color
-            groupSection.style.borderColor = group.color; // Apply group color to border
-
-            const groupTitle = document.createElement('h3');
-            groupTitle.textContent = group.name;
-            groupSection.appendChild(groupTitle);
-
-            const groupScoresDiv = document.createElement('div');
-            groupScoresDiv.className = 'group-scores-container';
-            groupScoresDiv.id = `group-scores-${group.id}`;
-            groupSection.appendChild(groupScoresDiv);
-
-            const addStudentToGroupButton = document.createElement('button');
-            addStudentToGroupButton.type = 'button';
-            addStudentToGroupButton.textContent = `＋ ${group.name}に生徒を追加`;
-            addStudentToGroupButton.classList.add('add-student-to-group-btn');
-            addStudentToGroupButton.dataset.groupId = group.id;
-            groupSection.appendChild(addStudentToGroupButton);
-
-            scoreInputsContainer.appendChild(groupSection);
-
-            const scoresInThisGroup = groupedScores[group.id] || [];
-            scoresInThisGroup.forEach(scoreObject => {
-                createNewScoreInput(scoreObject, groupScoresDiv);
-            });
-        });
-
-
-        const resultSection = document.querySelector('.result-section');
-        const existingStatsDiv = resultSection.querySelector('#statistics-results');
-        if (existingStatsDiv) {
-            existingStatsDiv.remove();
-        }
-
-        if (activeSchool.statistics) {
-            const stats = activeSchool.statistics;
-            const statsDiv = document.createElement('div');
-            statsDiv.id = 'statistics-results';
-            statsDiv.innerHTML = `
-                <p>中央値 (Q2): <span class="stat-value">${stats.median.toFixed(2)} 点</span></p>
-                <p>第一四分位数 (Q1): <span class="stat-value">${stats.q1.toFixed(2)} 点</span></p>
-                <p>第三四分位数 (Q3): <span class="stat-value">${stats.q3.toFixed(2)} 点</span></p>
-                <div id="boxplot-container">
-                    <p>箱ひげ図 (0点から100点):</p>
-                    <svg id="boxplot-svg" width="100%" height="80"></svg>
-                </div>
-            `;
-            resultSection.appendChild(statsDiv);
-
-            drawBoxPlot(stats);
-        }
-
-        renumberScoreEntries();
-    }
-
-    // Delete a school
-    function deleteSchool(idToDelete) {
-        if (schools.length === 1) {
-            alert('最後のスクールは削除できません。');
-            return;
-        }
-
-        const confirmDelete = confirm('このスクールを削除してもよろしいですか？');
-        if (!confirmDelete) {
-            return;
-        }
-
-        schools = schools.filter(s => s.id !== idToDelete);
-
-        if (activeSchoolId === idToDelete) {
-            activeSchoolId = schools.length > 0 ? schools[0].id : null;
-        }
-        saveSchools();
-        renderSchoolList();
-        renderActiveSchoolContent();
-    }
-
-    // Create a new score input entry
-    function createNewScoreInput(scoreObject = { value: null, notTaken: false, groupId: 'default' }, parentContainer = null) {
-        const entryDiv = document.createElement('div');
-        entryDiv.className = 'score-entry';
-
-        const input = document.createElement('input');
-        input.type = 'number';
-        input.className = 'score-input';
-        input.placeholder = '点数';
-        input.min = '0';
-        input.max = '100';
-
-        const groupSelectContainer = document.createElement('div');
-        groupSelectContainer.className = 'group-select-container';
-        const groupSelect = document.createElement('select');
-        groupSelect.className = 'group-select';
-
-        const activeSchool = schools.find(s => s.id === activeSchoolId);
-        if (activeSchool && activeSchool.groups) {
-            activeSchool.groups.forEach(group => {
-                const option = document.createElement('option');
-                option.value = group.id;
-                option.textContent = group.name;
-                groupSelect.appendChild(option);
-            });
-        }
-        groupSelect.value = scoreObject.groupId || 'default';
-        groupSelectContainer.appendChild(groupSelect);
-
-
-        const notTakenButton = document.createElement('button');
-        notTakenButton.className = 'not-taken-btn';
-        notTakenButton.textContent = '未受験';
-
-        const deleteButton = document.createElement('button');
-        deleteButton.className = 'delete-score-btn';
-        deleteButton.textContent = '削除';
-
-        if (scoreObject.value !== null) {
-            input.value = scoreObject.value;
-        }
-        if (scoreObject.notTaken) {
-            input.disabled = true;
-            entryDiv.classList.add('not-taken');
-            notTakenButton.classList.add('active');
-        }
-
-        entryDiv.appendChild(input);
-        entryDiv.appendChild(groupSelectContainer);
-        entryDiv.appendChild(notTakenButton);
-        entryDiv.appendChild(deleteButton);
-
-        (parentContainer || scoreInputsContainer).appendChild(entryDiv);
-    }
-
-    // Renumber score entries per group
-    function renumberScoreEntries() {
-        const groupScoreContainers = scoreInputsContainer.querySelectorAll('.group-scores-container');
-
-        groupScoreContainers.forEach(container => {
-            const scoreEntries = container.querySelectorAll('.score-entry');
-            scoreEntries.forEach((entry, index) => {
-                let numberSpan = entry.querySelector('.attendance-number');
-                if (!numberSpan) {
-                    numberSpan = document.createElement('span');
-                    numberSpan.className = 'attendance-number';
-                    entry.prepend(numberSpan);
-                }
-                numberSpan.textContent = `${index + 1}.`;
-            });
-        });
-    }
-
-    // Update current school's score data
-    function updateCurrentSchoolScores() {
-        const activeSchool = schools.find(s => s.id === activeSchoolId);
-        if (activeSchool) {
-            const scoreEntries = scoreInputsContainer.querySelectorAll('.score-entry');
-            activeSchool.scores = Array.from(scoreEntries).map(entry => {
-                const input = entry.querySelector('.score-input');
-                const notTakenBtn = entry.querySelector('.not-taken-btn');
-                const groupSelect = entry.querySelector('.group-select');
-                const value = parseFloat(input.value);
-                return {
-                    value: isNaN(value) ? null : value,
-                    notTaken: notTakenBtn.classList.contains('active'),
-                    groupId: groupSelect ? groupSelect.value : 'default'
-                };
-            });
-            saveSchools();
-        }
-    }
-
-    // --- Group related functions ---
-
-    // Create a new group
-    function createNewGroup(name = null) {
-        const activeSchool = schools.find(s => s.id === activeSchoolId);
-        if (activeSchool) {
-            const newGroupId = Date.now().toString();
-            const groupName = name || ` ${activeSchool.groups.length} 組`;
-            // Assign a random light color to the new group
-            const newGroup = { id: newGroupId, name: groupName, color: getRandomLightColor() };
-            activeSchool.groups.push(newGroup);
-            saveSchools();
-            renderGroupList();
-            renderActiveSchoolContent();
-        }
-    }
-
-    // Render group list
-    function renderGroupList() {
-        groupList.innerHTML = '';
-        const activeSchool = schools.find(s => s.id === activeSchoolId);
-        if (activeSchool && activeSchool.groups) {
-            activeSchool.groups.forEach(group => {
-                const groupItem = document.createElement('div');
-                groupItem.className = `group-item ${group.id === activeGroupId ? 'active' : ''}`;
-                groupItem.dataset.groupId = group.id;
-                groupItem.style.backgroundColor = group.color; // Apply group color
-                groupItem.style.color = getContrastColor(group.color); // Set text color for contrast
-
-                const nameSpan = document.createElement('span');
-                nameSpan.textContent = group.name;
-
-                const buttonsContainer = document.createElement('div');
-                buttonsContainer.className = 'group-item-buttons';
-
-                const editButton = document.createElement('button');
-                editButton.className = 'edit-group-btn';
-                editButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z"/></svg>`;
-                const deleteButton = document.createElement('button');
-                deleteButton.className = 'delete-group-btn';
-                deleteButton.innerHTML = '&times;';
-
-                buttonsContainer.appendChild(editButton);
-                if (group.id !== 'default') {
-                    buttonsContainer.appendChild(deleteButton);
-                }
-
-                groupItem.appendChild(nameSpan);
-                groupItem.appendChild(buttonsContainer);
-                groupList.appendChild(groupItem);
-            });
-        }
-    }
-
-    // Helper to get a contrasting text color (black or white)
-    function getContrastColor(hexcolor) {
-        if (!hexcolor) return 'black'; // Default to black if color is undefined
-
-        // Convert HSL to RGB for contrast calculation
-        let r, g, b;
-        if (hexcolor.startsWith('hsl')) {
-            const hsl = hexcolor.match(/(\d+(\.\d+)?)/g).map(Number);
-            const h = hsl[0];
-            const s = hsl[1] / 100;
-            const l = hsl[2] / 100;
-
-            let c = (1 - Math.abs(2 * l - 1)) * s,
-                x = c * (1 - Math.abs((h / 60) % 2 - 1)),
-                m = l - c / 2;
-            if (0 <= h && h < 60) {
-                r = c; g = x; b = 0;
-            } else if (60 <= h && h < 120) {
-                r = x; g = c; b = 0;
-            } else if (120 <= h && h < 180) {
-                r = 0; g = c; b = x;
-            } else if (180 <= h && h < 240) {
-                r = 0; g = x; b = c;
-            } else if (240 <= h && h < 300) {
-                r = x; g = 0; b = c;
-            } else if (300 <= h && h < 360) {
-                r = c; g = 0; b = x;
-            }
-            r = Math.round((r + m) * 255);
-            g = Math.round((g + m) * 255);
-            b = Math.round((b + m) * 255);
-        } else { // Assume hex for simplicity if not HSL
-            const c = hexcolor.substring(1); // strip #
-            const rgb = parseInt(c, 16); // convert rrggbb to decimal
-            r = (rgb >> 16) & 0xff; // extract r
-            g = (rgb >> 8) & 0xff; // extract g
-            b = (rgb >> 0) & 0xff; // extract b
-        }
-
-        // http://www.w3.org/TR/AERT#color-contrast
-        const brightness = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-        return (brightness > 180) ? 'black' : 'white';
-    }
-
-
-    // Make group name editable and add color input
-    function makeGroupNameEditable(groupItem, groupId) {
-        const activeSchool = schools.find(s => s.id === activeSchoolId);
-        const group = activeSchool?.groups.find(g => g.id === groupId);
-        if (!group) return;
-
-        const nameSpan = groupItem.querySelector('span');
-        nameSpan.style.display = 'none';
-
-        const inputContainer = document.createElement('div');
-        inputContainer.style.display = 'flex';
-        inputContainer.style.alignItems = 'center';
-        inputContainer.style.gap = '5px';
-        inputContainer.style.flexGrow = '1';
-
-        const nameInput = document.createElement('input');
-        nameInput.type = 'text';
-        nameInput.className = 'group-name-input';
-        nameInput.value = group.name;
-        nameInput.style.flexGrow = '1';
-        nameInput.style.minWidth = '50px'; // Ensure it doesn't shrink too much
-
-        const colorInput = document.createElement('input');
-        colorInput.type = 'color'; // HTML5 color picker
-        colorInput.className = 'group-color-input';
-        // Convert HSL to HEX for the color input value
-        // Note: This is a simplification. A perfect HSL to HEX conversion for color input type might need a more robust library.
-        // For HSL, we might need a custom color picker, or store colors as HEX from the start if using native color picker.
-        // For simplicity, let's assume if the color starts with # it's hex, otherwise use a default, or try to convert.
-        colorInput.value = group.color.startsWith('#') ? group.color : '#bbdefb'; // Default fallback if HSL.
-        colorInput.title = "グループの色を変更";
-
-
-        inputContainer.appendChild(nameInput);
-        inputContainer.appendChild(colorInput);
-        groupItem.insertBefore(inputContainer, nameSpan.nextSibling);
-
-        nameInput.focus();
-        nameInput.select();
-
-        const finishEditing = (shouldSave) => {
-            nameInput.removeEventListener('blur', onBlur);
-            nameInput.removeEventListener('keydown', onKeydown);
-            colorInput.removeEventListener('change', onChangeColor); // Remove color listener
-
-            const newName = nameInput.value.trim();
-            const newColor = colorInput.value; // Get the new color from the input
-
-            if (shouldSave && (newName && newName !== group.name || newColor !== group.color)) {
-                if (newName) group.name = newName;
-                group.color = newColor; // Update group color
-                saveSchools();
-                nameSpan.textContent = newName;
-            }
-
-            groupItem.removeChild(inputContainer);
-            nameSpan.style.display = '';
-            renderGroupList();
-            renderActiveSchoolContent();
-        };
-
-        const onBlur = () => finishEditing(true);
-        const onKeydown = (e) => {
-            if (e.key === 'Enter') finishEditing(true);
-            if (e.key === 'Escape') finishEditing(false);
-        };
-        const onChangeColor = () => {
-            // Apply color immediately for visual feedback
-            groupItem.style.backgroundColor = colorInput.value;
-            groupItem.style.color = getContrastColor(colorInput.value);
-            // No need to save here, save happens on blur/enter
-        };
-
-
-        nameInput.addEventListener('blur', onBlur);
-        nameInput.addEventListener('keydown', onKeydown);
-        colorInput.addEventListener('change', onChangeColor); // Listen for color changes
-    }
-
-
-    // Delete a group
-    function deleteGroup(idToDelete) {
-        const activeSchool = schools.find(s => s.id === activeSchoolId);
-        if (!activeSchool) return;
-
-        if (idToDelete === 'default') {
-            alert('デフォルトグループは削除できません。');
-            return;
-        }
-
-        if (!activeSchool.groups || activeSchool.groups.length <= 1) {
-            alert('最後のグループは削除できません。');
-            return;
-        }
-
-        const confirmDelete = confirm('このグループを削除してもよろしいですか？\nこのグループに所属する生徒はデフォルトグループに移動されます。');
-        if (!confirmDelete) {
-            return;
-        }
-
-        activeSchool.scores.forEach(score => {
-            if (score.groupId === idToDelete) {
-                score.groupId = 'default';
-            }
-        });
-
-        activeSchool.groups = activeSchool.groups.filter(g => g.id !== idToDelete);
-
-        if (activeGroupId === idToDelete) {
-            activeGroupId = 'default';
-        }
-        saveSchools();
-        renderGroupList();
-        renderActiveSchoolContent();
-    }
-
-
-    // Render group average results
-    function renderGroupAverageResults(groupAverages) {
-        groupAverageResults.innerHTML = '';
-        if (!groupAverages || typeof groupAverages !== 'object' || Object.keys(groupAverages).length === 0) {
-            groupAverageResults.innerHTML = '<p>グループごとの平均点はまだ計算されていません。</p>';
-            return;
-        }
-
-        const ul = document.createElement('ul');
-        for (const groupId in groupAverages) {
-            const avg = groupAverages[groupId];
-            const activeSchool = schools.find(s => s.id === activeSchoolId);
-            const group = activeSchool?.groups.find(g => g.id === groupId);
-            const groupName = group?.name || '不明なグループ';
-            const groupColor = group?.color || '#bbdefb'; // Fallback color
-
-            const li = document.createElement('li');
-            li.innerHTML = `<strong>${groupName}:</strong> <span>${avg.count > 0 ? `${avg.average.toFixed(2)} 点 (${avg.count}名)` : '対象なし'}</span>`;
-            li.style.backgroundColor = groupColor; // Apply group color
-            li.style.color = getContrastColor(groupColor); // Set text color for contrast
-            ul.appendChild(li);
-        }
-        const h4 = document.createElement('h4');
-        h4.textContent = 'グループ別平均点:';
-        groupAverageResults.appendChild(h4);
-        groupAverageResults.appendChild(ul);
-    }
-
-
-    newSchoolButton.addEventListener('click', () => createNewSchool());
-
-    newGroupButton.addEventListener('click', () => createNewGroup());
-
-
-    calculateButton.addEventListener('click', () => {
-        const activeSchool = schools.find(s => s.id === activeSchoolId);
-        if (!activeSchool) return;
-
-        const validScores = activeSchool.scores
-            .filter(score => !score.notTaken && score.value !== null && !isNaN(score.value))
-            .map(score => score.value);
-
-        if (validScores.length < 4) {
-            activeSchool.currentScoresDisplay = validScores.length > 0 ? `対象: ${validScores.join(', ')} 点` : "なし";
-            const sum = validScores.reduce((acc, current) => acc + current, 0);
-            const average = validScores.length > 0 ? (sum / validScores.length) : 0;
-            activeSchool.currentAverageResult = validScores.length > 0 ? `平均点: ${average.toFixed(2)} 点` : "有効な点数を入力してください";
-            if (validScores.length > 0 && validScores.length < 4) {
-                activeSchool.currentAverageResult += ' (データが4件未満のため詳細な統計は表示されません)';
-            }
-            activeSchool.statistics = null;
-        } else {
-            const sum = validScores.reduce((acc, current) => acc + current, 0);
-            const average = (sum / validScores.length);
-
-            activeSchool.currentScoresDisplay = `対象: ${validScores.join(', ')} 点`;
-            activeSchool.currentAverageResult = `平均点: ${average.toFixed(2)} 点`;
-
-            const sortedScores = [...validScores].sort((a, b) => a - b);
-
-            activeSchool.statistics = {
-                min: sortedScores[0],
-                q1: getQuantile(sortedScores, 0.25),
-                median: getQuantile(sortedScores, 0.5),
-                q3: getQuantile(sortedScores, 0.75),
-                max: sortedScores[sortedScores.length - 1]
-            };
-        }
-
-        activeSchool.groupAverages = {};
-        const groupsToProcess = activeSchool.groups || [];
-        groupsToProcess.forEach(group => {
-            const groupScores = activeSchool.scores
-                .filter(score => !score.notTaken && score.value !== null && !isNaN(score.value) && score.groupId === group.id)
-                .map(score => score.value);
-
-            const groupSum = groupScores.reduce((acc, current) => acc + current, 0);
-            const groupAverage = groupScores.length > 0 ? (groupSum / groupScores.length) : 0;
-            activeSchool.groupAverages[group.id] = {
-                average: groupAverage,
-                count: groupScores.length,
-                scores: groupScores
-            };
-        });
-
-        saveSchools();
-        renderActiveSchoolContent();
-    });
-
-    function getQuantile(sortedArray, q) {
-        const pos = (sortedArray.length - 1) * q;
-        const base = Math.floor(pos);
-        const rest = pos - base;
-        if (sortedArray[base + 1] !== undefined) {
-            return sortedArray[base] + rest * (sortedArray[base + 1] - sortedArray[base]);
-        } else {
-            return sortedArray[base];
-        }
-    }
-
-    function drawBoxPlot(stats) {
-        const svg = document.getElementById('boxplot-svg');
-        if (!svg) {
-            console.warn("Boxplot SVG element not found. Skipping drawing.");
-            return;
-        }
-
-        svg.innerHTML = '';
-
-        const width = svg.clientWidth;
-        const height = svg.clientHeight;
-        const plotAreaHeight = 50;
-        const yCenter = plotAreaHeight / 2;
-        const boxHeight = plotAreaHeight * 0.6;
-
-        const scale = (value) => (value / 100) * width;
-
-        const createSvgElement = (tag, attributes) => {
-            const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
-            for (const key in attributes) {
-                el.setAttribute(key, attributes[key]);
-            }
-            return el;
-        };
-
-        const createLabel = (value, x) => {
-            const text = createSvgElement('text', {
-                x: x,
-                y: plotAreaHeight + 15,
-                class: 'boxplot-label'
-            });
-            text.textContent = value.toFixed(1);
-            return text;
-        };
-
-        const minX = scale(stats.min);
-        const q1X = scale(stats.q1);
-        const medianX = scale(stats.median);
-        const q3X = scale(stats.q3);
-        const maxX = scale(stats.max);
-
-        svg.appendChild(createSvgElement('line', { x1: minX, y1: yCenter, x2: q1X, y2: yCenter, class: 'boxplot-line' }));
-        svg.appendChild(createSvgElement('line', { x1: q3X, y1: yCenter, x2: maxX, y2: yCenter, class: 'boxplot-line' }));
-
-        svg.appendChild(createSvgElement('rect', { x: q1X, y: (plotAreaHeight - boxHeight) / 2, width: q3X - q1X, height: boxHeight, class: 'boxplot-box' }));
-
-        svg.appendChild(createSvgElement('line', { x1: medianX, y1: (plotAreaHeight - boxHeight) / 2, x2: medianX, y2: (plotAreaHeight + boxHeight) / 2, class: 'boxplot-median' }));
-
-        svg.appendChild(createSvgElement('line', { x1: minX, y1: yCenter - 10, x2: minX, y2: yCenter + 10, class: 'boxplot-line' }));
-        svg.appendChild(createSvgElement('line', { x1: maxX, y1: yCenter - 10, x2: maxX, y2: yCenter + 10, class: 'boxplot-line' }));
-
-        svg.appendChild(createLabel(stats.min, minX));
-        svg.appendChild(createLabel(stats.q1, q1X));
-        svg.appendChild(createLabel(stats.median, medianX));
-        svg.appendChild(createLabel(stats.q3, q3X));
-        svg.appendChild(createLabel(stats.max, maxX));
-    }
-
-    loadSchools();
+    `;
+    document.head.appendChild(style);
+
+    document.getElementById('race-count').disabled = true;
+    startSimulation(); 
 });
