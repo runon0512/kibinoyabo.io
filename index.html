@@ -3,46 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>平均点計算ツール</title>
+    <title>F1 2025 シーズンシミュレーター 🏎️</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <aside class="sidebar">
-        <h2>スクール一覧</h2>
-        <div id="schoolList">
+    <h1>F1 2025 シーズンシミュレーター 🏎️</h1>
+    <div class="controls">
+        <label for="race-count">開催レース数:</label>
+        <input type="number" id="race-count" value="24" min="1" max="50">
+        <button onclick="startSimulation()">シミュレーション開始</button>
+    </div>
+
+    <div id="standings-container">
+        <div id="drivers-section">
+            <h2>ドライバーズ・ランキング</h2>
+            <table id="drivers-standings">
+                <thead>
+                    <tr>
+                        <th>順位</th>
+                        <th>ドライバー</th>
+                        <th>チーム</th>
+                        <th>ポイント</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
         </div>
-        <button id="newSchoolButton">＋ 新しいスクールを作成</button>
-    </aside>
 
-    <main class="main-content">
-        <div class="container">
-            <h1 id="currentSchoolTitle">平均点計算ツール</h1>
-
-            <section class="group-management-section">
-                <h3>グループ一覧</h3>
-                <div id="groupList">
-                    </div>
-                <button id="newGroupButton">＋ 新しいグループを作成</button>
-            </section>
-
-            <form id="scoreForm">
-                <section class="input-section">
-                    <p>点数を一つずつ入力してください:</p>
-                    <div id="scoreInputsContainer">
-                        </div>
-                    <div class="buttons-group">
-                        <button type="submit" id="calculateButton">平均を計算</button>
-                    </div>
-                </section>
-            </form>
-            <section class="result-section" aria-live="polite">
-                <p>入力された点数: <span id="scoresDisplay"></span></p>
-                <p>平均点: <span id="averageResult"></span></p>
-                <div id="groupAverageResults">
-                    </div>
-            </section>
+        <div id="constructors-section">
+            <h2>コンストラクターズ・ランキング</h2>
+            <table id="constructors-standings">
+                <thead>
+                    <tr>
+                        <th>順位</th>
+                        <th>チーム</th>
+                        <th>ポイント</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
         </div>
-    </main>
-    <script src="script.js"></script>
+
+        <div id="statistics-section">
+            <h2>ドライバー統計</h2>
+            <table id="driver-stats">
+                <thead>
+                    <tr>
+                        <th>ドライバー</th>
+                        <th>優勝</th>
+                        <th>PP</th>
+                        <th>表彰台</th>
+                        <th>入賞</th>
+                        <th>DNF</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="graph-container">
+        <h2>マシンパフォーマンス (レート)</h2>
+        <canvas id="machinePerformanceChart"></canvas>
+    </div>
+
+<section class="standings-section">
+    <h2>🏆 24戦レース結果 (勝者リスト)</h2>
+    <p>**レース名**をクリックすると、予選・決勝の全順位（1〜20位）が見られます。</p>
+    <table id="race-winners">
+        <thead>
+            <tr>
+                <th>RND</th>
+                <th>レース名 (コース特性)</th> 
+                <th>ポールポジション (PP)</th> 
+                <th>勝者</th>
+            </tr>
+        </thead>
+        <tbody>
+            </tbody>
+    </table>
+</section>
+
+<script src="script.js"></script>
 </body>
 </html>
