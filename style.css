@@ -1,475 +1,99 @@
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #e0f7fa; /* 明るい水色 */
-    margin: 0;
+    font-family: 'Arial', sans-serif;
+    background-color: #f4f4f9;
     color: #333;
-}
-
-.sidebar {
-    position: fixed; /* サイドバーをビューポートに固定 */
-    top: 0;
-    left: 0;
-    height: 100vh; /* 高さをビューポート全体に */
-    width: 250px; /* サイドバーの幅 */
-    background-color: #00bcd4; /* サイドバーの背景色（水色） */
-    color: white;
-    padding: 20px;
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    box-sizing: border-box; /* paddingを含めて幅を計算 */
-}
-
-.sidebar h2 {
-    margin-top: 0;
-    margin-bottom: 25px;
-    font-size: 1.8em;
-    color: #e0f7fa; /* 薄い水色 */
-}
-
-#schoolList {
-    width: 100%;
-    flex-grow: 1; /* 残りのスペースを埋める */
-    overflow-y: auto; /* スクールが増えたらスクロール */
-    padding-right: 5px; /* スクロールバーとの間隔 */
-}
-
-.school-item {
-    background-color: #4dd0e1; /* アクティブでないスクールアイテムの背景 */
-    color: white;
-    padding: 12px 15px;
-    margin-bottom: 10px;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    text-align: left;
-    font-size: 1.1em;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-/* school-item内のspanがflex-growを持つようにして、クリック領域を広げる */
-.school-item > span {
-    flex-grow: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    padding: 5px 0; /* 上下のクリック領域を確保 */
-    margin-right: 5px;
-}
-
-.school-item:hover {
-    background-color: #26c6da; /* ホバー時の色 */
-    transform: translateX(5px);
-}
-
-.school-item.active {
-    background-color: #03a9f4; /* アクティブなスクールアイテムの背景（濃い水色） */
-    font-weight: bold;
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
-}
-
-.school-item-buttons {
-    display: flex;
-    align-items: center;
-    flex-shrink: 0; /* ボタンコンテナが縮まないように */
-}
-
-.edit-school-btn {
-    background: none;
-    border: none;
-    color: white;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 5px;
-    border-radius: 4px;
-    margin-right: 5px;
-    transition: background-color 0.2s ease;
-}
-
-.edit-school-btn:hover {
-    background-color: rgba(0, 0, 0, 0.2);
-}
-
-.delete-school-btn {
-    background: none;
-    border: none;
-    color: #ffeb3b; /* 黄色 */
-    font-weight: bold;
-    font-size: 1.1em;
-    cursor: pointer;
-    padding: 2px 5px;
-    border-radius: 4px;
-    margin-left: 0; /* edit-school-btnとの間隔はそちらで管理 */
-    transition: color 0.2s ease, background-color 0.2s ease;
-}
-
-.delete-school-btn:hover {
-    color: #ffc107; /* 濃い黄色 */
-    background-color: rgba(0, 0, 0, 0.2);
-}
-
-#newSchoolButton {
-    background-color: #81d4fa; /* 水色 */
-    color: white;
-    padding: 12px 20px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 1.1em;
-    margin-top: 20px;
-    width: 100%;
-    transition: background-color 0.3s ease;
-}
-
-#newSchoolButton:hover {
-    background-color: #4fc3f7; /* 濃い水色 */
-}
-
-.main-content {
-    margin-left: 250px; /* サイドバーの幅分だけ左にマージンをとる */
     padding: 20px;
 }
 
-.container {
-    background-color: #fff; /* 白 */
-    margin: 0 auto; /* display:flexの代わりに中央揃えにする */
-    padding: 30px 40px;
-    border-radius: 10px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    text-align: center;
-    width: 100%;
-    max-width: 600px; /* 最大幅を設定 */
-}
-
-#currentSchoolTitle {
-    color: #03a9f4; /* 水色 */
-    margin-bottom: 25px;
-    font-size: 2.5em;
-}
-
-.input-section {
-    margin-bottom: 25px;
-}
-
-.input-section p {
-    font-size: 1.2em;
-    font-weight: bold;
-    margin-bottom: 15px;
-    color: #03a9f4;
-}
-
-#scoreInputsContainer {
-    margin-bottom: 20px;
-}
-
-.buttons-group {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    margin-top: 30px;
-}
-
-#addInputButton,
-#calculateButton {
-    color: white;
-    padding: 15px 30px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 1.2em;
-    transition: background-color 0.3s ease;
-}
-
-#addInputButton {
-    background-color: #81d4fa;
-}
-
-#addInputButton:hover {
-    background-color: #4fc3f7;
-}
-
-#calculateButton {
-    background-color: #4dd0e1;
-}
-
-#calculateButton:hover {
-    background-color: #26c6da;
-}
-
-.result-section {
-    background-color: #e0f2f7;
-    padding: 25px;
-    border-radius: 8px;
-    border: 1px solid #b2ebf2;
-    text-align: left;
-    margin-top: 30px;
-}
-
-.result-section p {
-    margin: 15px 0;
-    font-size: 1.1em;
-}
-
-.result-section p span {
-    font-weight: bold;
-    color: #0288d1;
-    word-break: break-all;
-}
-
-/* --- 統計情報と箱ひげ図のスタイル --- */
-#statistics-results {
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px solid #b2ebf2;
-}
-
-.stat-value {
-    font-size: 1.1em;
-    color: #01579b; /* より濃い青 */
-}
-
-#boxplot-container {
-    margin-top: 15px;
-}
-
-#boxplot-svg .boxplot-box {
-    fill: #81d4fa; /* 箱の色 */
-    stroke: #0288d1; /* 箱の枠線 */
-    stroke-width: 1.5;
-}
-
-#boxplot-svg .boxplot-line {
-    stroke: #0288d1; /* ひげの色 */
-    stroke-width: 1.5;
-}
-
-#boxplot-svg .boxplot-median {
-    stroke: #e53935; /* 中央値の色 (赤) */
-    stroke-width: 2.5;
-}
-
-#boxplot-svg .boxplot-label {
-    font-size: 12px;
-    fill: #01579b; /* 濃い青 */
-    text-anchor: middle; /* テキストを中央揃え */
-}
-/* ===== ボタンのスタイル ===== */
-
-/* スクール名編集用の入力欄 */
-.school-name-input {
-    flex-grow: 1;
-    border: 2px solid #03a9f4; /* アクティブな状態がわかるように */
-    border-radius: 4px;
-    padding: 8px;
-    font-size: 1em; /* 親要素のフォントサイズを継承 */
-    margin-right: 10px;
-}
-
-/* 未受験ボタンの基本スタイル */
-.not-taken-btn {
-    background-color: #f0f0f0; /* 通常時の色 */
-    border: 1px solid #ccc;
-    color: #333;
-    cursor: pointer;
-    padding: 5px 10px;
-    border-radius: 4px;
-    margin-left: 8px;
-    transition: background-color 0.2s, color 0.2s;
-}
-
-/* 未受験ボタンがアクティブ（黄色）の時のスタイル */
-.not-taken-btn.active {
-    background-color: #ffc107; /* 黄色 */
-    color: #fff;
-    border-color: #ffc107;
-}
-
-/* 削除ボタン（赤色）のスタイル */
-.delete-score-btn {
-    background-color: #dc3545; /* 赤色 */
-    color: white;
-    border: 1px solid #dc3545;
-    cursor: pointer;
-    padding: 5px 10px;
-    border-radius: 4px;
-    margin-left: 8px;
-}
-
-/* ===== レイアウト調整 ===== */
-
-/* 生徒一人の入力欄のレイアウト */
-.score-entry {
-    display: flex;
-    align-items: center;
-    margin-bottom: 10px;
-}
-
-/* 出席番号のスタイル */
-.attendance-number {
-    margin-right: 8px;
-    font-weight: bold;
-    width: 2em; /* 番号の幅を固定 */
-}
-
-.score-input {
-    width: 80px; /* 入力欄の幅を固定 */
-    padding: 10px;
-    border: 1px solid #b2ebf2;
-    border-radius: 5px;
-    font-size: 1.1em;
-    box-sizing: border-box;
+h1 {
+    color: #e10600; 
     text-align: center;
 }
 
-/* --- 新しく追加するグループ関連のスタイル --- */
-.group-management-section {
-    background-color: #f5f5f5;
-    padding: 20px;
-    border-radius: 8px;
-    margin-bottom: 25px;
-    box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
-}
-
-.group-management-section h3 {
-    color: #0288d1;
-    margin-top: 0;
-    margin-bottom: 15px;
-    font-size: 1.5em;
-}
-
-#groupList {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 15px;
-}
-
-.group-item {
-    background-color: #bbdefb; /* 薄い青 */
-    color: #1a237e; /* 濃い青 */
-    padding: 8px 12px;
-    border-radius: 20px;
-    cursor: pointer;
-    transition: background-color 0.2s ease, transform 0.1s ease;
-    font-size: 0.95em;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    white-space: nowrap;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.group-item.active {
-    background-color: #2196f3; /* 選択時の青 */
-    color: white;
-    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
-}
-
-.group-item:hover {
-    background-color: #90caf9;
-    transform: translateY(-1px);
-}
-
-.group-item-buttons {
-    margin-left: 8px;
-    display: flex;
-    align-items: center;
-}
-
-/* style.css */
-
-/* ... (既存のCSSコード) ... */
-
-.edit-group-btn, .delete-group-btn {
-    background: none;
-    border: none;
-    color: inherit; /* 親要素の色を継承 */
-    cursor: pointer;
-    /* font-size: 1em; (変更なし) */
-    margin-left: 5px;
-    opacity: 0.7;
-    transition: opacity 0.2s ease;
-    padding: 8px; /* ★★★ この行を追加または変更 ★★★ */
-    border-radius: 4px; /* 角を丸くする (任意だが見た目のバランスが良い) */
-}
-
-.edit-group-btn:hover, .delete-group-btn:hover {
-    opacity: 1;
-    background-color: rgba(0, 0, 0, 0.1); /* ホバー時にわずかに背景色を付けて視覚的なフィードバックを強化 */
-}
-
-/* ... (既存のCSSコード) ... */
-.edit-group-btn:hover, .delete-group-btn:hover {
-    opacity: 1;
-}
-
-.delete-group-btn {
-    color: #e53935; /* 赤 */
-}
-
-#newGroupButton {
-    background-color: #64b5f6; /* 青 */
-    color: white;
-    padding: 10px 15px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1em;
-    width: 100%;
-    margin-top: 10px;
-    transition: background-color 0.3s ease;
-}
-
-#newGroupButton:hover {
-    background-color: #42a5f5;
-}
-
-.group-select-container {
-    margin-left: 10px;
-}
-
-.group-select {
-    padding: 8px;
-    border: 1px solid #b2ebf2;
-    border-radius: 5px;
-    font-size: 0.9em;
+.controls {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 15px;
     background-color: #fff;
-    cursor: pointer;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
-#groupAverageResults {
-    margin-top: 20px;
-    padding-top: 15px;
-    border-top: 1px solid #b2ebf2;
-}
-
-#groupAverageResults h4 {
-    color: #0288d1;
-    margin-bottom: 10px;
-    font-size: 1.2em;
-}
-
-#groupAverageResults ul {
-    list-style: none;
-    padding: 0;
-}
-
-#groupAverageResults ul li {
-    background-color: #f0f8ff; /* 非常に薄い青 */
-    padding: 10px 15px;
-    margin-bottom: 8px;
-    border-radius: 5px;
-    border: 1px solid #e0f2f7;
+/* レイアウト調整: 3つのセクションを横に並べる */
+#standings-container {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    max-width: 1200px; 
+    margin: 0 auto 30px auto; /* グラフとの間にスペースを追加 */
+    gap: 15px;
 }
 
-#groupAverageResults ul li strong {
-    color: #01579b;
+#drivers-section, #constructors-section, #statistics-section {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    flex: 1; /* 親要素の幅に合わせて柔軟に広がる */
+    min-width: 30%; /* 最小幅を設定 */
+    overflow-x: auto; /* テーブルがはみ出す場合の対応 */
+}
+
+/* 小さな画面では縦に並べる */
+@media (max-width: 1250px) {
+    #standings-container {
+        flex-direction: column;
+    }
+    #drivers-section, #constructors-section, #statistics-section {
+        min-width: 100%;
+    }
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0;
+}
+
+th, td {
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+    font-size: 14px;
+}
+
+th {
+    background-color: #e10600;
+    color: white;
+    font-weight: bold;
+    white-space: nowrap; /* ヘッダーが折り返されないように */
+}
+
+#driver-stats th {
+    font-size: 12px;
+}
+
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+tr:hover {
+    background-color: #f0f0f0;
+}
+
+/* 上位3チーム/ドライバーの強調 */
+#drivers-standings tbody tr:nth-child(1), #constructors-standings tbody tr:nth-child(1) { background-color: #ffc107; font-weight: bold; } 
+#drivers-standings tbody tr:nth-child(2), #constructors-standings tbody tr:nth-child(2) { background-color: #c0c0c0; } 
+#drivers-standings tbody tr:nth-child(3), #constructors-standings tbody tr:nth-child(3) { background-color: #cd7f32; } 
+
+/* グラフコンテナ */
+#graph-container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
