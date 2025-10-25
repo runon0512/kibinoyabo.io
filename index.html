@@ -2,106 +2,60 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>F1 2025 シーズンシミュレーター 🏎️</title>
+    <title>吉備の野望 β0.0.1</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <h1>F1 2025 シーズンシミュレーター 🏎️</h1>
-    <div class="controls">
-        <label for="race-count">開催レース数:</label>
-        <input type="number" id="race-count" value="24" min="1" max="50">
-<section class="controls-section">
-    <h2>シミュレーション実行</h2>
-    <div class="control-group">
-        <label for="race-count">合計レース数: </label>
-        <input type="number" id="race-count" value="24" disabled>
+    <h1>試合</h1>
+    
+    <div id="auth-area">
+        <h2>アクセス認証</h2>
+        <p>吉備の野望を続行するにはIDを入力してください。</p>
+        <input type="password" id="access-id" placeholder="IDを入力..." style="padding: 10px; margin-bottom: 10px; width: 80%; max-width: 300px; border: 1px solid #ccc; border-radius: 4px;">
+        <button onclick="authenticateId()">認証</button>
+        <p id="auth-message" style="color: red; margin-top: 10px;"></p>
     </div>
-    <div class="controls">
-        <button id="initialize-button" class="btn">シミュレーションを初期化</button>
+    <div id="setup-area" style="display: none;"> 
+        <h2>AIプレイヤー設定</h2>
+        <p>P1とP2が以下のプリセットステータスで対戦します。</p>
+        <div id="player-info-container"> 
+             <div class="player-config">
+                <h3>Player 1 (AI)</h3>
+                <select id="player1-preset" onchange="displayStatus('player1-status', this.value)">
+                    </select>
+                <div id="player1-status"></div>
+            </div>
 
-        <button id="next-race-button" class="btn">▶ 1レース進める</button>
-        <div class="step-controls">
-            <input type="number" id="step-count" value="5" min="1" max="24">
-            <button id="step-races-button" class="btn">▶ 指定回数進める</button>
+            <div class="player-config">
+                <h3>Player 2 (AI)</h3>
+                <select id="player2-preset" onchange="displayStatus('player2-status', this.value)">
+                    </select>
+                <div id="player2-status"></div>
+            </div>
         </div>
+
+        <button onclick="startGame()">ゲーム開始</button>
     </div>
-</section>    </div>
 
-    <div id="standings-container">
-        <div id="drivers-section">
-            <h2>ドライバーズ・ランキング</h2>
-            <table id="drivers-standings">
-                <thead>
-                    <tr>
-                        <th>順位</th>
-                        <th>ドライバー</th>
-                        <th>チーム</th>
-                        <th>ポイント</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    </tbody>
-            </table>
+    <div id="game-area" style="display: none;">
+        <div id="scoreboard">
+            <span id="p1-score" class="score-display">P1: 0</span> - <span id="p2-score" class="score-display">P2: 0</span>
+            <div id="current-server"></div>
         </div>
-
-        <div id="constructors-section">
-            <h2>コンストラクターズ・ランキング</h2>
-            <table id="constructors-standings">
-                <thead>
-                    <tr>
-                        <th>順位</th>
-                        <th>チーム</th>
-                        <th>ポイント</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    </tbody>
-            </table>
+        
+        <div id="main-content-row"> 
+             <div id="p1-adaptation-display" class="adaptation-display-box">
+                </div>
+            <div id="p2-adaptation-display" class="adaptation-display-box">
+                </div>
         </div>
-
-        <div id="statistics-section">
-            <h2>ドライバー統計</h2>
-            <table id="driver-stats">
-                <thead>
-                    <tr>
-                        <th>ドライバー</th>
-                        <th>優勝</th>
-                        <th>PP</th>
-                        <th>表彰台</th>
-                        <th>入賞</th>
-                        <th>DNF</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    </tbody>
-            </table>
+        
+        <div id="game-log-wrapper">
+            <h3>試合ログ (最終得点のみ)</h3>
+            <div id="game-log"></div>
         </div>
     </div>
 
-    <div id="graph-container">
-        <h2>マシンパフォーマンス (レート)</h2>
-        <canvas id="machinePerformanceChart"></canvas>
-    </div>
-
-<section class="standings-section">
-    <h2>🏆 24戦レース結果 (勝者リスト)</h2>
-    <p>**レース名**をクリックすると、予選・決勝の全順位（1〜20位）が見られます。</p>
-    <table id="race-winners">
-        <thead>
-            <tr>
-                <th>RND</th>
-                <th>レース名 (コース特性)</th> 
-                <th>ポールポジション (PP)</th> 
-                <th>勝者</th>
-            </tr>
-        </thead>
-        <tbody>
-            </tbody>
-    </table>
-</section>
-
-<script src="script.js"></script>
+    <script src="game.js"></script>
 </body>
 </html>
