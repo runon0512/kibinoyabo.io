@@ -1,4 +1,4 @@
-const SECRET_ID = "1H#j3Lk!N"; // 秘密のID
+const SECRET_ID = "kibi"; // 秘密のID
 
 // ====================================================
 // 1. データ定義 (変更なし)
@@ -33,13 +33,13 @@ const PLAYERS = {
     // Player 2のデフォルト
     Iimori: {
         name: "飯森",
-        control: 30, 
+        control: 50, 
         drive: 65, 
         push: 40, 
-        adaptability: 50,
+        adaptability: 65,
         serveMastery: [
             { name: "フォアロング", mastery: 30, spinType: 'topspin' },
-            { name: "しゃがみ込み", mastery: 65, spinType: 'backspin' },
+            { name: "フォア下", mastery: 65, spinType: 'backspin' },
             { name: "ハイトス", mastery: 40, spinType: 'backspin' },
             { name: "ショート", mastery: 20, spinType: 'backspin' },
             { name: "下ロング", mastery: 20, spinType: 'backspin' },
@@ -65,7 +65,7 @@ const PLAYERS = {
         adaptability: 55,
         serveMastery: [
             { name: "フォアロング", mastery: 35, spinType: 'topspin' },
-            { name: "しゃがみ込み", mastery: 40, spinType: 'backspin' },
+            { name: "フォア下", mastery: 40, spinType: 'backspin' },
             { name: "バック下", mastery: 25, spinType: 'backspin' },
             { name: "バックロング", mastery: 20, spinType: 'topspin' },
             { name: "フォアナックル", mastery: 15, spinType: 'none' },
@@ -80,7 +80,37 @@ const PLAYERS = {
             rally_drive: { shot: 60, drive: 40, push: 0 }, 
             rally_shot: { shot: 15, drive: 80, push: 5 }
         }
+    },
+
+        Mizutani: {
+        name: "水谷",
+        control: 50, 
+        drive: 50, 
+        push: 50, 
+        adaptability: 85,
+        serveMastery: [
+            { name: "フォアロング", mastery: 20, spinType: 'topspin' },
+            { name: "フォア下", mastery: 50, spinType: 'backspin' },
+            { name: "バック下", mastery: 20, spinType: 'backspin' },
+            { name: "バックロング", mastery: 10, spinType: 'topspin' },
+            { name: "豆腐", mastery: 70, spinType: 'none' },
+            { name: "YG", mastery: 20, spinType: 'backspin' },
+            { name: "しゃがみ込み", mastery: 30, spinType: 'backspin' },
+
+
+
+        ],
+        actionProfiles: {
+            serve_backspin: { push: 80, drive: 20 }, 
+            serve_topspin: { shot: 40, drive: 60 },  
+            serve_none: { shot: 30, drive: 70 },
+            
+            rally_push: { shot: 5, drive: 5, push: 90 }, 
+            rally_drive: { shot: 80, drive: 20, push: 0 }, 
+            rally_shot: { shot: 10, drive: 90, push: 0 }
+        }
     }
+
 
 };
 
@@ -107,7 +137,7 @@ let ballState = {
 };
 
 // ====================================================
-// 3. UI表示関数 (updateAdaptationDisplay を修正)
+// 3. UI表示関数 (変更なし)
 // ====================================================
 
 function setupPlayerSelection() {
@@ -249,7 +279,7 @@ function moveBall(serverID) {
 
 
 // ====================================================
-// 3.5. 認証関数 (★★★★ 追加 ★★★★)
+// 3.5. 認証関数 (変更なし)
 // ====================================================
 
 function authenticateId() {
@@ -375,12 +405,8 @@ function scorePoint(winnerID, reason) {
     updateAdaptationDisplay();
 }
 
-window.onload = () => {
-    setupPlayerSelection(); 
-};
-
 // ====================================================
-// 5. AIロジック 
+// 5. AIロジック (エース判定ロジックと成功率計算の変更を適用)
 // ====================================================
 
 function selectActionByProbability(actionProbabilities) {
@@ -473,27 +499,48 @@ function serveAction(serveIndex, serverID) {
 
 function AI_rallyDecision(playerID, playerAI) {
     const opponentID = 3 - playerID;
+    const opponentAI = (playerID === 1) ? player2 : player1;
     const incomingSpin = ballState.spin;
     const lastAction = ballState.lastAction;
-
-    const baseMiss = 100 - playerAI.control;
-    const missChance = Math.max(5, baseMiss * 0.5); 
     
-    if (Math.random() * 100 < missChance) {
-        scorePoint(opponentID, '返球前のミスによる');
+    // **ACE判定ロジックの導入 (返球前のミスをエースに変更)**
+    
+    // 相手の最後の行動に基づく球威・難易度
+    let difficultyScore = 0;
+    let pointReasonText = 'エースによる';
+    
+    if (lastAction === 'drive') {
+        // ドライブの難易度は相手のドライブ値とコントロール値に依存
+        difficultyScore = (opponentAI.drive * 1.5 + opponentAI.control * 0.5) / 2;
+        pointReasonText = `${opponentAI.name}の強烈なドライブによるエース`;
+    } else if (lastAction === 'shot') {
+        // 強打の難易度は相手のコントロールと球速（speed）に依存
+        difficultyScore = (opponentAI.control * 1.5 + ballState.speed * 0.5) / 2;
+        pointReasonText = `${opponentAI.name}の強烈なスマッシュによるエース`;
+    } else { // 'push' または 'none'
+        // ツッツキまたはサーブレシーブ直後などで、球威が低い場合はエースになりにくい
+        difficultyScore = (opponentAI.push * 0.5 + opponentAI.control * 0.5);
+        pointReasonText = `${opponentAI.name}の意表を突いたボールによるエース`;
+    }
+    
+    // レシーバー（playerAI）の総合対応力
+    // ラリー中の対応力として、コントロールを重視
+    const receiverRallyDefense = (playerAI.drive * 0.3 + playerAI.push * 0.3 + playerAI.control * 1.4) / 2;
+    
+    // エース率: 難易度と対応力の差に基づく
+    const aceChance = Math.max(0, difficultyScore - receiverRallyDefense + 10); // 調整のための+10
+    
+    // エース判定 (乱数 < aceChance)
+    if (Math.random() * 100 < aceChance) {
+        scorePoint(opponentID, pointReasonText);
         return;
     }
     
-    let actionKey;
-    if (lastAction === 'push') {
-        actionKey = 'rally_push';
-    } else if (lastAction === 'drive') {
-        actionKey = 'rally_drive';
-    } else if (lastAction === 'shot') {
-        actionKey = 'rally_shot';
-    } else {
-        actionKey = 'rally_push'; 
-    }
+    // エースを回避した場合、通常のラリーアクションへ
+    const actionKey = (lastAction === 'push') ? 'rally_push' :
+                      (lastAction === 'drive') ? 'rally_drive' :
+                      (lastAction === 'shot') ? 'rally_shot' :
+                      'rally_push'; 
     
     const chosenAction = selectActionByProbability(playerAI.actionProfiles[actionKey]);
     
@@ -532,19 +579,22 @@ function calculateActionSuccessRate(actionType, playerAI, incomingSpin, lastActi
     let baseRate;
 
     if (actionType === 'shot') {
-        baseRate = (playerAI.control * 1.0 + 50) / 2;
+        // 強打(shot)はコントロールを重視しつつ、ドライブ値も少し参照
+        baseRate = (playerAI.control * 1.2 + playerAI.drive * 0.8 + 50) / 3;
     } else if (actionType === 'drive') {
+        // ドライブはドライブ値とコントロール値を重視
         baseRate = (playerAI.drive * 1.5 + playerAI.control * 0.5) / 2;
-    } else { 
+    } else { // 'push' (ツッツキ)
+        // ツッツキはツッツキ値とコントロール値を重視
         baseRate = (playerAI.push * 1.5 + playerAI.control * 0.5) / 2;
     }
 
     if (incomingSpin === 'backspin') {
-        if (actionType === 'drive') baseRate *= 1.2;
-        if (actionType === 'push') baseRate *= 0.8;
+        if (actionType === 'drive') baseRate *= 1.3; // 下回転にはドライブが有効
+        if (actionType === 'push') baseRate *= 0.7;  // 下回転にはツッツキが難しい
     } else if (incomingSpin === 'topspin') {
-        if (actionType === 'drive') baseRate *= 0.9;
-        if (actionType === 'push') baseRate *= 1.1;
+        if (actionType === 'drive') baseRate *= 0.8;  // 上回転へのドライブは難しい
+        if (actionType === 'push') baseRate *= 1.2;  // 上回転へのツッツキは安定しやすい
     } else if (incomingSpin === 'none') { 
         if (actionType === 'drive') baseRate *= 0.95;
         if (actionType === 'push') baseRate *= 0.95;
@@ -552,15 +602,15 @@ function calculateActionSuccessRate(actionType, playerAI, incomingSpin, lastActi
 
 
     if (lastAction === 'shot') {
-        if (actionType === 'drive') baseRate *= 1.3; 
-        if (actionType === 'push') baseRate *= 0.9;
+        if (actionType === 'drive') baseRate *= 1.2; 
+        if (actionType === 'push') baseRate *= 0.8; 
     } else if (lastAction === 'push' || lastAction === 'serve') { 
-        if (actionType === 'shot') baseRate *= 0.7;
-        if (actionType === 'drive') baseRate *= 1.1;
+        if (actionType === 'shot') baseRate *= 0.6; // ツッツキからの強打は難しい
+        if (actionType === 'drive') baseRate *= 1.2; // ツッツキからのドライブはしやすい
     } else if (lastAction === 'drive') { 
          if (actionType === 'drive') baseRate *= 0.9;
-         if (actionType === 'push') baseRate *= 0.8;
-         if (actionType === 'shot') baseRate *= 1.1; 
+         if (actionType === 'push') baseRate *= 0.7; 
+         if (actionType === 'shot') baseRate *= 1.2; // ドライブの打ち合いから強打は有効
     }
     
     const controlPenalty = (100 - playerAI.control) * 0.3;
