@@ -128,6 +128,28 @@ const PLAYERS = {
             rally_shot: { shot: 10, drive: 70, push: 20 }
         }
     },
+            YamamotoRi: {
+        name: "山本理",
+        control: 50, 
+        drive: 15, 
+        push: 55, 
+        adaptability: 55,
+        serveMastery: [
+            { name: "フォア下", mastery: 30, spinType: 'backspin' },
+            { name: "バック下", mastery: 40, spinType: 'backspin' },
+            { name: "フォアロング", mastery: 25, spinType: 'topspin' },
+        ],
+        actionProfiles: {
+            serve_backspin: { push: 85, drive: 15 }, 
+            serve_topspin: { shot: 45 , drive: 55 },  
+            serve_none: { push: 25, drive: 75 },
+            
+            rally_push: { shot: 0, drive: 10, push: 90 }, 
+            rally_drive: { shot: 70, drive: 20, push: 10 }, 
+            rally_shot: { shot: 5, drive: 80, push: 15 }
+        }
+    },
+
 
 
 
@@ -144,7 +166,7 @@ let currentServer = 1;
 let serveCount = 0; 
 let isRallying = false;
 let gameInterval;
-const GAME_SPEED_MS = 100; 
+const GAME_SPEED_MS = 500; 
 
 let ballState = {
     spin: 'none', 
