@@ -14,8 +14,8 @@ const PLAYERS = {
         push: 70, 
         adaptability: 30,
         serveMastery: [
-            { name: "バックナックル", mastery: 65, spinType: 'none' },
-            { name: "バック下", mastery: 30, spinType: 'backspin' },
+            { name: "バックナックル", mastery: 75, spinType: 'none' },
+            { name: "バック下", mastery: 20, spinType: 'backspin' },
         ],
         // AI行動プロファイルを選手ステータスに直接記述
         actionProfiles: {
@@ -43,7 +43,6 @@ const PLAYERS = {
             { name: "ハイトス", mastery: 40, spinType: 'backspin' },
             { name: "ショート", mastery: 20, spinType: 'backspin' },
             { name: "下ロング", mastery: 20, spinType: 'backspin' },
-
         ],
         actionProfiles: {
             serve_backspin: { push: 30, drive: 70 }, 
@@ -69,7 +68,6 @@ const PLAYERS = {
             { name: "バック下", mastery: 25, spinType: 'backspin' },
             { name: "バックロング", mastery: 20, spinType: 'topspin' },
             { name: "フォアナックル", mastery: 15, spinType: 'none' },
-
         ],
         actionProfiles: {
             serve_backspin: { push: 20, drive: 70 }, 
@@ -96,9 +94,6 @@ const PLAYERS = {
             { name: "豆腐", mastery: 70, spinType: 'none' },
             { name: "YG", mastery: 20, spinType: 'backspin' },
             { name: "しゃがみ込み", mastery: 30, spinType: 'backspin' },
-
-
-
         ],
         actionProfiles: {
             serve_backspin: { push: 80, drive: 20 }, 
@@ -109,7 +104,31 @@ const PLAYERS = {
             rally_drive: { shot: 80, drive: 20, push: 0 }, 
             rally_shot: { shot: 10, drive: 90, push: 0 }
         }
-    }
+    },
+
+        Tokuda: {
+        name: "徳田",
+        control: 45, 
+        drive: 20, 
+        push: 60, 
+        adaptability: 45,
+        serveMastery: [
+            { name: "フォアロング", mastery: 60, spinType: 'topspin' },
+            { name: "フォア下", mastery: 40, spinType: 'backspin' },
+            { name: "しゃがみ込み", mastery: 35, spinType: 'backspin' },
+            { name: "背面", mastery: 30, spinType: 'none' },
+        ],
+        actionProfiles: {
+            serve_backspin: { push: 95, drive: 5 }, 
+            serve_topspin: { push: 35 , drive: 65 },  
+            serve_none: { push: 20, drive: 80 },
+            
+            rally_push: { shot: 5, drive: 10, push: 85 }, 
+            rally_drive: { shot: 30, drive: 40, push: 30 }, 
+            rally_shot: { shot: 10, drive: 70, push: 20 }
+        }
+    },
+
 
 
 };
@@ -125,7 +144,7 @@ let currentServer = 1;
 let serveCount = 0; 
 let isRallying = false;
 let gameInterval;
-const GAME_SPEED_MS = 1000; 
+const GAME_SPEED_MS = 100; 
 
 let ballState = {
     spin: 'none', 
@@ -549,7 +568,8 @@ function AI_rallyDecision(playerID, playerAI) {
 
 function rallyAction(actionType, playerID, playerAI, isServeReturn) {
     const opponentID = 3 - playerID;
-    const successRate = calculateActionSuccessRate(actionType, playerAI, ballState.spin, ballState.lastAction);
+    // 変更点: 返球アクションの成功率を100%に固定
+    const successRate = 100; // calculateActionSuccessRate(actionType, playerAI, ballState.spin, ballState.lastAction);
 
     if (Math.random() * 100 < successRate) {
         
@@ -570,6 +590,7 @@ function rallyAction(actionType, playerID, playerAI, isServeReturn) {
         moveBall(playerID);
         
     } else {
+        // successRate = 100のため、実行されない
         scorePoint(opponentID, isServeReturn ? `${playerAI.name}のサーブ対応後の${actionType}ミスによる` : `${playerAI.name}の${actionType}ミスによる`);
     }
 }
@@ -623,3 +644,4 @@ function calculateActionSuccessRate(actionType, playerAI, incomingSpin, lastActi
 window.onload = () => {
     setupPlayerSelection(); 
 };
+
